@@ -428,3 +428,4 @@ t/pod-coverage.t
 t/pod.t
 TODO
 typemap
+META.yml                                 Module meta-data (added by MakeMaker)
