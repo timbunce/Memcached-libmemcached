@@ -998,7 +998,6 @@ SV * get_server_for_key(Memcached__libmemcached ptr, char *key)
             memcached_server_name(sp),
             memcached_server_port(sp)
         );
-        memcached_server_free(sp);
     
     OUTPUT:
         RETVAL
