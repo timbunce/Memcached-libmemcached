@@ -45,11 +45,11 @@ typedef time_t               lmc_expiration;
 #define LMC_TRACE_LEVEL_FROM_PTR(ptr) \
     ((ptr) ? LMC_STATE_FROM_PTR(ptr)->trace_level : 0)
 
-/* check memcached_return value counts as success */
+/* check memcached_return_t value counts as success */
 #define LMC_RETURN_OK(ret) \
     (ret==MEMCACHED_SUCCESS || ret==MEMCACHED_STORED || ret==MEMCACHED_DELETED || ret==MEMCACHED_END || ret==MEMCACHED_BUFFERED)
 
-/* store memcached_return value in our lmc_state structure */
+/* store memcached_return_t value in our lmc_state structure */
 #define LMC_RECORD_RETURN_ERR(what, ptr, ret) \
     STMT_START {    \
         lmc_state_st* lmc_state = LMC_STATE_FROM_PTR(ptr); \
@@ -76,7 +76,7 @@ struct lmc_cb_context_st {
     lmc_state_st *lmc_state;
     SV *dest_sv;
     HV *dest_hv;
-    memcached_return *rc_ptr;
+    memcached_return_t *rc_ptr;
     lmc_data_flags_t *flags_ptr;
     UV  result_count;
     SV  *get_cb;
@@ -93,7 +93,7 @@ struct lmc_state_st {
     HV              *hv;    /* pointer back to HV (not refcntd) */
     IV               trace_level;
     int              options;
-    memcached_return last_return;
+    memcached_return_t last_return;
     int              last_errno;
     /* handy default fetch context for fetching single items */
     lmc_cb_context_st *cb_context; /* points to _cb_context by default */
@@ -148,7 +148,7 @@ _prep_keys_buffer(lmc_cb_context_st *lmc_cb_context, int keys_needed)
 }
 
 
-static memcached_return
+static memcached_return_t
 _prep_keys_lengths(memcached_st *ptr, SV *keys_rv, char ***out_keys, size_t **out_key_length, unsigned int *out_number_of_keys)
 {
     SV *keys_sv;
@@ -338,7 +338,7 @@ memcached_callback_fp lmc_store_sv_get[3][3] = {
 
 
 static SV *
-_fetch_one_sv(memcached_st *ptr, lmc_data_flags_t *flags_ptr, memcached_return *error_ptr)
+_fetch_one_sv(memcached_st *ptr, lmc_data_flags_t *flags_ptr, memcached_return_t *error_ptr)
 {
     lmc_cb_context_st *lmc_cb_context = LMC_STATE_FROM_PTR(ptr)->cb_context;
 
@@ -368,8 +368,8 @@ _fetch_one_sv(memcached_st *ptr, lmc_data_flags_t *flags_ptr, memcached_return *
 }
 
 
-static memcached_return
-_fetch_all_into_hashref(memcached_st *ptr, memcached_return rc, HV *dest_ref)
+static memcached_return_t
+_fetch_all_into_hashref(memcached_st *ptr, memcached_return_t rc, HV *dest_ref)
 {
     lmc_cb_context_st *lmc_cb_context = LMC_STATE_FROM_PTR(ptr)->cb_context;
     lmc_data_flags_t flags;
@@ -466,16 +466,16 @@ memcached_clone(Memcached__libmemcached clone, Memcached__libmemcached source)
 unsigned int
 memcached_server_count(Memcached__libmemcached ptr)
 
-memcached_return
+memcached_return_t
 memcached_server_add(Memcached__libmemcached ptr, char *hostname, unsigned int port=0)
 
-memcached_return
+memcached_return_t
 memcached_server_add_with_weight(Memcached__libmemcached ptr, char *hostname, unsigned int port=0, unsigned int weight)
 
-memcached_return
+memcached_return_t
 memcached_server_add_unix_socket(Memcached__libmemcached ptr, char *socket)
 
-memcached_return
+memcached_return_t
 memcached_server_add_unix_socket_with_weight(Memcached__libmemcached ptr, char *socket, unsigned int weight)
 
 void
@@ -511,13 +511,13 @@ DESTROY(SV *sv)
     Safefree(lmc_state);
 
 UV
-memcached_behavior_get(Memcached__libmemcached ptr, memcached_behavior flag)
+memcached_behavior_get(Memcached__libmemcached ptr, memcached_behavior_t flag)
 
-memcached_return
-memcached_behavior_set(Memcached__libmemcached ptr, memcached_behavior flag, uint64_t data)
+memcached_return_t
+memcached_behavior_set(Memcached__libmemcached ptr, memcached_behavior_t flag, uint64_t data)
 
-memcached_return
-memcached_callback_set(Memcached__libmemcached ptr, memcached_callback flag, SV *data)
+memcached_return_t
+memcached_callback_set(Memcached__libmemcached ptr, memcached_callback_t flag, SV *data)
     CODE:
     /* we only allow setting of known-safe flags */
     switch (flag) {
@@ -532,7 +532,7 @@ memcached_callback_set(Memcached__libmemcached ptr, memcached_callback flag, SV 
         RETVAL
 
 SV *
-memcached_callback_get(Memcached__libmemcached ptr, memcached_callback flag, IN_OUT memcached_return ret=NO_INIT)
+memcached_callback_get(Memcached__libmemcached ptr, memcached_callback_t flag, IN_OUT memcached_return_t ret=NO_INIT)
     PREINIT:
         void *data = NULL;
     CODE:
@@ -557,78 +557,78 @@ memcached_callback_get(Memcached__libmemcached ptr, memcached_callback flag, IN_
 
 =cut
 
-memcached_return
+memcached_return_t
 memcached_set(Memcached__libmemcached ptr, \
         lmc_key   key,   size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration= 0, lmc_data_flags_t flags= 0)
 
-memcached_return
+memcached_return_t
 memcached_set_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key   key,      size_t length(key), \
         lmc_value value,    size_t length(value), \
         lmc_expiration expiration=0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_add (Memcached__libmemcached ptr, \
         lmc_key   key,   size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration= 0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_add_by_key(Memcached__libmemcached ptr, \
         lmc_key   master_key, size_t length(master_key), \
         lmc_key   key,        size_t length(key), \
         lmc_value value,      size_t length(value), \
         lmc_expiration expiration=0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_append(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key),\
         lmc_value value, size_t length(value),\
         lmc_expiration expiration= 0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_append_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration=0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_prepend(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration= 0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_prepend_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration=0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_replace(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration= 0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_replace_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration=0, lmc_data_flags_t flags=0)
 
-memcached_return
+memcached_return_t
 memcached_cas(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         lmc_value value, size_t length(value), \
         lmc_expiration expiration= 0, lmc_data_flags_t flags=0, uint64_t cas)
 
-memcached_return
+memcached_return_t
 memcached_cas_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
@@ -640,29 +640,29 @@ memcached_cas_by_key(Memcached__libmemcached ptr, \
 
 =cut
 
-memcached_return
+memcached_return_t
 memcached_increment(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         unsigned int offset, IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_decrement(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         unsigned int offset, IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_increment_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         unsigned int offset, IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_decrement_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         unsigned int offset, IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_increment_with_initial (Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         unsigned int offset, \
@@ -670,7 +670,7 @@ memcached_increment_with_initial (Memcached__libmemcached ptr, \
         lmc_expiration expiration= 0, \
         IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_decrement_with_initial (Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         unsigned int offset, \
@@ -678,7 +678,7 @@ memcached_decrement_with_initial (Memcached__libmemcached ptr, \
         lmc_expiration expiration= 0, \
         IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_increment_with_initial_by_key (Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
@@ -687,7 +687,7 @@ memcached_increment_with_initial_by_key (Memcached__libmemcached ptr, \
         lmc_expiration expiration= 0, \
         IN_OUT uint64_t value=NO_INIT)
 
-memcached_return
+memcached_return_t
 memcached_decrement_with_initial_by_key (Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
@@ -705,7 +705,7 @@ SV *
 memcached_get(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         IN_OUT lmc_data_flags_t flags=0, \
-        IN_OUT memcached_return error=0)
+        IN_OUT memcached_return_t error=0)
     CODE:
         /* rc is the return code from the preceeding mget */
         error = memcached_mget_by_key(ptr, NULL, 0, (const char * const*)&key, &XSauto_length_of_key, 1);
@@ -719,7 +719,7 @@ memcached_get_by_key(Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
         IN_OUT lmc_data_flags_t flags=0, \
-        IN_OUT memcached_return error=0)
+        IN_OUT memcached_return_t error=0)
     CODE:
         error = memcached_mget_by_key(ptr, master_key, XSauto_length_of_master_key, (const char * const*)&key, &XSauto_length_of_key, 1);
         RETVAL = _fetch_one_sv(ptr, &flags, &error);
@@ -727,7 +727,7 @@ memcached_get_by_key(Memcached__libmemcached ptr, \
         RETVAL
 
 
-memcached_return
+memcached_return_t
 memcached_mget(Memcached__libmemcached ptr, SV *keys_rv)
     PREINIT:
         char **keys;
@@ -740,7 +740,7 @@ memcached_mget(Memcached__libmemcached ptr, SV *keys_rv)
     OUTPUT:
         RETVAL
 
-memcached_return
+memcached_return_t
 memcached_mget_by_key(Memcached__libmemcached ptr, lmc_key master_key, size_t length(master_key), SV *keys_rv)
     PREINIT:
         char **keys;
@@ -759,7 +759,7 @@ lmc_value
 memcached_fetch(Memcached__libmemcached ptr, \
         OUT lmc_key key, \
         IN_OUT lmc_data_flags_t flags=0, \
-        IN_OUT memcached_return error=0)
+        IN_OUT memcached_return_t error=0)
     PREINIT:
         size_t key_length=0;
         size_t value_length=0;
@@ -779,7 +779,7 @@ memcached_fetch(Memcached__libmemcached ptr, \
 memcached_result_st *
 memcached_fetch_result(Memcached__libmemcached ptr,\
                        memcached_result_st *result,\
-                       memcached_return *error)
+                       memcached_return_t *error)
 */
 
 =cut
@@ -789,12 +789,12 @@ memcached_fetch_result(Memcached__libmemcached ptr,\
 
 =cut
 
-memcached_return
+memcached_return_t
 memcached_delete(Memcached__libmemcached ptr, \
         lmc_key key, size_t length(key), \
         lmc_expiration expiration= 0)
 
-memcached_return
+memcached_return_t
 memcached_delete_by_key (Memcached__libmemcached ptr, \
         lmc_key master_key, size_t length(master_key), \
         lmc_key key, size_t length(key), \
@@ -811,17 +811,23 @@ memcached_delete_by_key (Memcached__libmemcached ptr, \
 
 =cut
 
-memcached_return
+memcached_return_t
 memcached_verbosity(Memcached__libmemcached ptr, unsigned int verbosity)
 
-memcached_return
+memcached_return_t
 memcached_flush(Memcached__libmemcached ptr, lmc_expiration expiration=0)
 
 void
 memcached_quit(Memcached__libmemcached ptr)
 
 char *
-memcached_strerror(Memcached__libmemcached ptr, memcached_return rc)
+memcached_strerror(Memcached__libmemcached ptr, memcached_return_t rc)
+
+const char *
+libmemcached_string_behavior(memcached_behavior_t flag);
+
+const char *
+libmemcached_string_distribution(memcached_server_distribution_t flag);
 
 const char *
 memcached_lib_version()
@@ -872,7 +878,7 @@ get(Memcached__libmemcached ptr, SV *key_sv)
         size_t master_key_len = 0;
         char *key;
         size_t key_len;
-        memcached_return error;
+        memcached_return_t error;
         uint32_t flags;
     CODE:
         if (SvROK(key_sv) && SvTYPE(SvRV(key_sv)) == SVt_PVAV) {
@@ -896,7 +902,7 @@ get_multi(Memcached__libmemcached ptr, ...)
         char **keys;
         size_t *key_length;
         unsigned int number_of_keys = --items;
-        memcached_return ret;
+        memcached_return_t ret;
         lmc_cb_context_st *lmc_cb_context;
     PPCODE:
         /* XXX does not support keys being [ $master_key, $key ] */
@@ -920,7 +926,7 @@ get_multi(Memcached__libmemcached ptr, ...)
 
 
 
-memcached_return
+memcached_return_t
 mget_into_hashref(Memcached__libmemcached ptr, SV *keys_ref, HV *dest_ref)
     ALIAS:
         memcached_mget_into_hashref = 1
@@ -955,7 +961,7 @@ set_callback_coderefs(Memcached__libmemcached ptr, SV *set_cb, SV *get_cb)
         sv_setsv(lmc_state->cb_context->get_cb, get_cb);
 
 
-memcached_return
+memcached_return_t
 walk_stats(Memcached__libmemcached ptr, SV *stats_args, CV *cb)
     PREINIT:
         Memcached__libmemcached clone;
