@@ -53,8 +53,11 @@ if (my $gccversion = $Config{gccversion}) {     # ask gcc to be more pedantic
         $opts{DEFINE} .= ' -Wdisabled-optimization -Wformat'    if $gccversion ge "3.0";
         $opts{DEFINE} .= ' -Wmissing-prototypes';
     }
+    ( $opts{LD} = "g++-$gccversion" ) =~ s{ ( \d+ \. \d+ ) [.\d]+ \z }{$1}x;
 }
-$opts{LIBS} = ["-lstdc++"]; # else error: libmemcached.so: undefined symbol: __gxx_personality_v0
+else {
+    $opts{LIBS} = ["-lstdc++"]; # else error: libmemcached.so: undefined symbol: __gxx_personality_v0
+}
 $opts{OPTIMIZE} = "-g"  if $opt_g;
 $opts{CCFLAGS}  = "-pg" if $opt_pg;
 my $coverage_flags = "";
