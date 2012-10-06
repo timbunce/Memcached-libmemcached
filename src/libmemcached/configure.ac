@@ -7,9 +7,9 @@
 # Use and distribution licensed under the BSD license.  See
 # the COPYING file in this directory for full text.
 
-AC_INIT([libmemcached],[1.0.8],[http://libmemcached.org/])
+AC_INIT([libmemcached],[1.0.11],[http://libmemcached.org/])
 
-AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_AUX_DIR([config])
 
 AC_CANONICAL_TARGET
 
@@ -20,20 +20,20 @@ AC_CANONICAL_BUILD
 
 AC_PREREQ([2.61])
 
-AC_CONFIG_MACRO_DIR(m4)
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_CONFIG_HEADERS([config.h:config.in])dnl Keep filename to 8.3 for MS-DOS.
 
 AC_CONFIG_SRCDIR([libmemcached/memcached.cc])
 
-PANDORA_CANONICAL_TARGET(no-vc-changelog)
+PANDORA_CANONICAL_TARGET([no-vc-changelog])
 AC_CHECK_PROGS([YACC], ['bison'], [:])
 AC_CHECK_PROGS([LEX], ['flex'], [:])
 
 #shared library versioning
 MEMCACHED_UTIL_LIBRARY_VERSION=2:0:0
 MEMCACHED_PROTOCAL_LIBRARY_VERSION=0:0:0
-MEMCACHED_LIBRARY_VERSION=10:0:0
+MEMCACHED_LIBRARY_VERSION=11:0:0
 #                         | | |
 #                  +------+ | +---+
 #                  |        |     |
@@ -63,11 +63,12 @@ AX_CXX_HEADER_STDCXX_98
     AC_MSG_ERROR([Your system lacks a new enough C++ compiler])
   fi
 
-m4_include([m4/memcached.m4])
+# Adding support for libtest
+m4_include([libtest/yatl.m4])
+
 m4_include([m4/memcached_sasl.m4])
 m4_include([m4/gearmand.m4])
 m4_include([m4/libgearman.m4])
-m4_include([memcached/version.m4])
 
 AM_CONDITIONAL(BUILDING_LIBMEMCACHED, true)
 AM_CONDITIONAL(HAVE_LIBMEMCACHED, false)
@@ -79,17 +80,7 @@ AM_CONDITIONAL(BUILDING_GEARMAN, false)
 AC_SEARCH_LIBS(getopt_long, gnugetopt)
 AC_SEARCH_LIBS(gethostbyname, nsl)
 
-case "$target_os" in
-  *linux*)
-       AS_IF([test "x$GCC" = "xyes"],
-             [
-              LDFLAGS="$LDFLAGS -z relro -z now"
-              ])
-   ;;
-   esac
-
 dnl Specialty checks
-AX_PTHREAD
 AX_CXX_CINTTYPES
 CONFIG_EXTRA
 DETECT_BYTEORDER
@@ -102,6 +93,7 @@ PROTOCOL_BINARY_TEST
 ENABLE_DEPRECATED
 
 AC_CHECK_FUNCS([alarm])
+AC_CHECK_FUNCS([clock_gettime])
 AC_CHECK_FUNCS([dup2])
 AC_CHECK_FUNCS([getline])
 AC_CHECK_FUNCS([gettimeofday])
@@ -193,14 +185,7 @@ AS_IF([test "x$ac_enable_sasl" = "xyes"], [
            ])
 AC_SUBST(LIBMEMCACHED_WITH_SASL_SUPPORT)
 
-AX_CHECK_LIBRARY([LIBUUID], [uuid/uuid.h], [uuid], 
-                 [
-                  LIBUUID_LDFLAGS="-luuid"
-                  AC_DEFINE([HAVE_LIBUUID], [ 1 ], [Have libuuid])
-                  ],
-                 [
-                  AC_DEFINE([HAVE_LIBUUID], [ 0 ], [Have libuuid])
-                  ])
+AX_UUID_GENERATE_TIME_SAFE
 
 AC_CHECK_LIB([rt], [clock_gettime], 
              [
@@ -291,7 +276,14 @@ if test $ac_cv_c_endian = little; then
 fi
 ])
 
-AC_C_ENDIAN
+AX_CHECK_SOCK_CLOEXEC([AC_DEFINE([HAVE_SOCK_CLOEXEC], [1], [Check for SOCK_CLOEXEC.])],
+                       [AC_DEFINE([HAVE_SOCK_CLOEXEC], [0], [Check for SOCK_CLOEXEC.])])
+
+AX_PTHREAD(, [AC_MSG_ERROR(could not find libpthread)])
+
+AX_HARDEN_CC_COMPILER_FLAGS
+
+AX_DEBUG
 
 AC_CONFIG_FILES([
   Makefile
@@ -303,7 +295,6 @@ AC_CONFIG_FILES([
   support/libmemcached.pc
   support/libmemcached.spec
   support/libmemcached-fc.spec
-  libtest/version.h
   ])
 AC_OUTPUT
 
@@ -314,6 +305,10 @@ echo "   * Installation prefix:       $prefix"
 echo "   * System type:               $host_vendor-$host_os"
 echo "   * Host CPU:                  $host_cpu"
 echo "   * C Compiler:                $CC_VERSION"
+echo "   * C Flags:                   $CFLAGS"
+echo "   * C++ Compiler:              $CXX_VERSION"
+echo "   * C++ Flags:                 $CXXFLAGS"
+echo "   * CPP Flags:                 $CPPFLAGS"
 echo "   * Assertions enabled:        $ac_cv_assert"
 echo "   * Debug enabled:             $with_debug"
 echo "   * Warnings as failure:       $ac_cv_warnings_as_errors"

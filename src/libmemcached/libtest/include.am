@@ -9,6 +9,7 @@ VALGRIND_EXEC_COMMAND= $(LIBTOOL_COMMAND) valgrind --error-exitcode=1 --leak-che
 VALGRIND_COMMAND= TESTS_ENVIRONMENT="valgrind" $(VALGRIND_EXEC_COMMAND)
 HELGRIND_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=helgrind --read-var-info=yes --error-exitcode=1 --read-var-info=yes
 DRD_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=drd
+MASSIF_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=massif
 GDB_COMMAND= $(LIBTOOL_COMMAND) gdb -f -x libtest/run.gdb
 PTRCHECK_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=exp-ptrcheck --error-exitcode=1
 
@@ -31,57 +32,66 @@ drd:
 	@echo make check TESTS_ENVIRONMENT="\"$(DRD_COMMAND)\""
 
 EXTRA_DIST+= libtest/run.gdb
+EXTRA_DIST+= libtest/version.h
 
 CLEANFILES+= tmp_chroot/etc/*
 CLEANFILES+= tmp_chroot/var/drizzle/*
 CLEANFILES+= tmp_chroot/var/log/*
 CLEANFILES+= tmp_chroot/var/run/*
 CLEANFILES+= tmp_chroot/var/tmp/*
+CLEANFILES+= tmp_chroot/*.xml
+
+BUILT_SOURCES+= libtest/version.h
 
 .PHONY: distclean-libtest-check
 distclean-libtest-check:
 	-rm -rf tmp_chroot
 
+noinst_HEADERS+= libtest/formatter.hpp
 noinst_HEADERS+= libtest/timer.hpp
-noinst_HEADERS+=libtest/binaries.h 
-noinst_HEADERS+=libtest/cpu.hpp 
-noinst_HEADERS+=libtest/blobslap_worker.h 
-noinst_HEADERS+=libtest/callbacks.h 
-noinst_HEADERS+=libtest/cmdline.h 
-noinst_HEADERS+=libtest/collection.h 
-noinst_HEADERS+=libtest/common.h 
-noinst_HEADERS+=libtest/comparison.hpp 
-noinst_HEADERS+=libtest/core.h 
-noinst_HEADERS+=libtest/dream.h 
-noinst_HEADERS+=libtest/error.h 
-noinst_HEADERS+=libtest/failed.h 
-noinst_HEADERS+=libtest/fatal.hpp 
-noinst_HEADERS+=libtest/framework.h 
-noinst_HEADERS+=libtest/gearmand.h 
-noinst_HEADERS+=libtest/drizzled.h 
-noinst_HEADERS+=libtest/get.h 
-noinst_HEADERS+=libtest/has.hpp 
-noinst_HEADERS+=libtest/http.hpp 
-noinst_HEADERS+=libtest/is_pid.hpp 
-noinst_HEADERS+=libtest/is_local.hpp 
-noinst_HEADERS+=libtest/killpid.h 
-noinst_HEADERS+=libtest/libtool.hpp 
-noinst_HEADERS+=libtest/memcached.h 
-noinst_HEADERS+=libtest/port.h 
-noinst_HEADERS+=libtest/runner.h 
-noinst_HEADERS+=libtest/server.h 
-noinst_HEADERS+=libtest/server_container.h 
-noinst_HEADERS+=libtest/signal.h 
-noinst_HEADERS+=libtest/socket.hpp 
-noinst_HEADERS+=libtest/stream.h 
-noinst_HEADERS+=libtest/strerror.h 
-noinst_HEADERS+=libtest/string.hpp 
-noinst_HEADERS+=libtest/test.h 
-noinst_HEADERS+=libtest/test.hpp 
-noinst_HEADERS+=libtest/tmpfile.hpp 
-noinst_HEADERS+=libtest/vchar.hpp 
-noinst_HEADERS+=libtest/visibility.h 
-noinst_HEADERS+=libtest/wait.h
+noinst_HEADERS+= libtest/binaries.h 
+noinst_HEADERS+= libtest/cpu.hpp 
+noinst_HEADERS+= libtest/blobslap_worker.h 
+noinst_HEADERS+= libtest/callbacks.h 
+noinst_HEADERS+= libtest/dns.hpp 
+noinst_HEADERS+= libtest/cmdline.h 
+noinst_HEADERS+= libtest/collection.h 
+noinst_HEADERS+= libtest/common.h 
+noinst_HEADERS+= libtest/comparison.hpp 
+noinst_HEADERS+= libtest/core.h 
+noinst_HEADERS+= libtest/dream.h 
+noinst_HEADERS+= libtest/error.h 
+noinst_HEADERS+= libtest/failed.h 
+noinst_HEADERS+= libtest/fatal.hpp 
+noinst_HEADERS+= libtest/framework.h 
+noinst_HEADERS+= libtest/gearmand.h 
+noinst_HEADERS+= libtest/drizzled.h 
+noinst_HEADERS+= libtest/get.h 
+noinst_HEADERS+= libtest/has.hpp 
+noinst_HEADERS+= libtest/http.hpp 
+noinst_HEADERS+= libtest/is_pid.hpp 
+noinst_HEADERS+= libtest/is_local.hpp 
+noinst_HEADERS+= libtest/killpid.h 
+noinst_HEADERS+= libtest/libtool.hpp 
+noinst_HEADERS+= libtest/memcached.h 
+noinst_HEADERS+= libtest/memcached.hpp
+noinst_HEADERS+= libtest/poll_error.hpp
+noinst_HEADERS+= libtest/port.h 
+noinst_HEADERS+= libtest/runner.h 
+noinst_HEADERS+= libtest/server.h 
+noinst_HEADERS+= libtest/server_container.h 
+noinst_HEADERS+= libtest/signal.h 
+noinst_HEADERS+= libtest/socket.hpp 
+noinst_HEADERS+= libtest/stream.h 
+noinst_HEADERS+= libtest/strerror.h 
+noinst_HEADERS+= libtest/string.hpp 
+noinst_HEADERS+= libtest/test.h 
+noinst_HEADERS+= libtest/test.hpp 
+noinst_HEADERS+= libtest/tmpfile.hpp 
+noinst_HEADERS+= libtest/vchar.hpp 
+noinst_HEADERS+= libtest/version.h 
+noinst_HEADERS+= libtest/visibility.h 
+noinst_HEADERS+= libtest/wait.h
 
 noinst_LTLIBRARIES+= libtest/libtest.la
 
@@ -91,6 +101,7 @@ libtest_libtest_la_LIBADD=
 libtest_libtest_la_SOURCES=
 
 libtest_libtest_la_SOURCES+= libtest/binaries.cc 
+libtest_libtest_la_SOURCES+= libtest/dns.cc 
 libtest_libtest_la_SOURCES+= libtest/cmdline.cc 
 libtest_libtest_la_SOURCES+= libtest/comparison.cc 
 libtest_libtest_la_SOURCES+= libtest/collection.cc 
@@ -98,6 +109,7 @@ libtest_libtest_la_SOURCES+= libtest/core.cc
 libtest_libtest_la_SOURCES+= libtest/cpu.cc 
 libtest_libtest_la_SOURCES+= libtest/dream.cc 
 libtest_libtest_la_SOURCES+= libtest/fatal.cc 
+libtest_libtest_la_SOURCES+= libtest/formatter.cc 
 libtest_libtest_la_SOURCES+= libtest/framework.cc 
 libtest_libtest_la_SOURCES+= libtest/has.cc 
 libtest_libtest_la_SOURCES+= libtest/drizzled.cc 
@@ -220,7 +232,7 @@ test-unittest: libtest/unittest
 	@libtest/unittest
 
 valgrind-unittest: libtest/unittest
-	@$(VALGRIND_COMMAND) libtest/unittest TESTS_ENVIRONMENT="valgrind"
+	@$(VALGRIND_COMMAND) libtest/unittest
 
 gdb-unittest: libtest/unittest
 	@$(GDB_COMMAND) libtest/unittest
@@ -235,9 +247,6 @@ libtest_skiptest_LDADD= libtest/libtest.la
 libtest_skiptest_SOURCES= libtest/skiptest.cc
 check_PROGRAMS+= libtest/skiptest
 noinst_PROGRAMS+= libtest/skiptest
-
-test-skip: libtest/skiptest
-	@libtest/skiptest
 
 libtest_wait_SOURCES=
 libtest_wait_SOURCES+= libtest/wait.cc

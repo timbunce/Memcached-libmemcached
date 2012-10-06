@@ -46,6 +46,8 @@ using namespace libtest;
 #include <tests/debug.h>
 #include <tests/print.h>
 
+#include "libmemcached/instance.h"
+
 /* Dump each server's keys */
 static memcached_return_t print_keys_callback(const memcached_st *,
                                               const char *key,
@@ -65,7 +67,7 @@ static memcached_return_t server_wrapper_for_dump_callback(const memcached_st *,
 {
   memcached_st *memc= memcached_create(NULL);
 
-  if (server->type == MEMCACHED_CONNECTION_UNIX_SOCKET)
+  if (strcmp(memcached_server_type(server), "SOCKET") == 0)
   {
     if (memcached_failed(memcached_server_add_unix_socket(memc, memcached_server_name(server))))
     {
@@ -109,7 +111,7 @@ test_return_t confirm_keys_exist(memcached_st *memc, const char * const *keys, c
                                0, &rc);
     if (require_all)
     {
-      test_true_got(value, keys[x]);
+      test_true(value);
       if (key_matches_value)
       {
         test_strcmp(keys[x], value);
@@ -117,7 +119,7 @@ test_return_t confirm_keys_exist(memcached_st *memc, const char * const *keys, c
     }
     else if (memcached_success(rc))
     {
-      test_warn_hint(value, keys[x]);
+      test_warn(value, "get() did not return a value");
       if (value and key_matches_value)
       {
         test_strcmp(keys[x], value);

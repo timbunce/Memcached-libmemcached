@@ -44,7 +44,7 @@ memcached_return_t memcached_delete(memcached_st *memc, const char *key, size_t 
   return memcached_delete_by_key(memc, key, key_length, key, key_length, expiration);
 }
 
-static inline memcached_return_t ascii_delete(memcached_server_write_instance_st instance,
+static inline memcached_return_t ascii_delete(org::libmemcached::Instance* instance,
                                               uint32_t ,
                                               const char *key,
                                               const size_t key_length,
@@ -65,7 +65,7 @@ static inline memcached_return_t ascii_delete(memcached_server_write_instance_st
   return memcached_vdo(instance, vector, 6, is_buffering ? false : true);
 }
 
-static inline memcached_return_t binary_delete(memcached_server_write_instance_st instance,
+static inline memcached_return_t binary_delete(org::libmemcached::Instance* instance,
                                                uint32_t server_key,
                                                const char *key,
                                                const size_t key_length,
@@ -76,7 +76,8 @@ static inline memcached_return_t binary_delete(memcached_server_write_instance_s
 
   bool should_flush= is_buffering ? false : true;
 
-  request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+  initialize_binary_request(instance, request.message.header);
+
   if (reply)
   {
     request.message.header.request.opcode= PROTOCOL_BINARY_CMD_DELETE;
@@ -116,7 +117,7 @@ static inline memcached_return_t binary_delete(memcached_server_write_instance_s
         server_key= 0;
       }
 
-      memcached_server_write_instance_st replica= memcached_server_instance_fetch(instance->root, server_key);
+      org::libmemcached::Instance* replica= memcached_instance_fetch(instance->root, server_key);
 
       if (memcached_fatal(memcached_vdo(replica, vector, 4, should_flush)))
       {
@@ -157,7 +158,7 @@ memcached_return_t memcached_delete_by_key(memcached_st *memc,
   }
 
   uint32_t server_key= memcached_generate_hash_with_redistribution(memc, group_key, group_key_length);
-  memcached_server_write_instance_st instance= memcached_server_instance_fetch(memc, server_key);
+  org::libmemcached::Instance* instance= memcached_instance_fetch(memc, server_key);
   
   bool is_buffering= memcached_is_buffering(instance->root);
   bool is_replying= memcached_is_replying(instance->root);

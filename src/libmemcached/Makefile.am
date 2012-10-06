@@ -1,6 +1,6 @@
 # vim:ft=automake
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4 -I libtest/m4
 
 # includes append to these:
 SUFFIXES =
@@ -31,8 +31,6 @@ EXTRA_DIST+= config/uncrustify.cfg
 
 include libtest/include.am
 
-libtest_libtest_la_DEPENDENCIES+= memcached/memcached
-
 include libhashkit-1.0/include.am
 include libmemcached-1.0/include.am
 include libmemcachedprotocol-0.0/include.am
@@ -48,11 +46,13 @@ include libmemcachedprotocol/include.am
 include libmemcachedinternal/include.am
 include libmemcachedinternal/util/include.am
 include poll/include.am
+include rpm.am
 include support/include.am
 include tests/include.am
 include util/include.am
 include win32/include.am
-include memcached/include.am
+
+include m4/include.am
 
 docs: html man
 
@@ -60,41 +60,14 @@ TESTS += ${check_PROGRAMS}
 
 EXTRA_DIST+= ${man_MANS}
 
-fedora:
-	@rm -f ~/rpmbuild/RPMS/x86_64/libmemcached-$(VERSION)*.rpm
-	@rm -f ~/rpmbuild/SRPMS/libmemcached-$(VERSION)*.rpm
-	@cp libmemcached-$(VERSION).tar.gz ~/rpmbuild/SOURCES/
-	@rpmbuild -ba support/libmemcached.spec
-	@cp ~/rpmbuild/RPMS/x86_64/libmemcached-$(VERSION)*.rpm .
-	@cp ~/rpmbuild/SRPMS/libmemcached-$(VERSION)*.rpm .
-
-generic: support/libmemcached.spec
-	@rm -f ~/rpmbuild/RPMS/x86_64/libmemcached-$(VERSION)*.rpm
-	@rm -f ~/rpmbuild/SRPMS/libmemcached-$(VERSION)*.rpm
-	@cp libmemcached-$(VERSION).tar.gz ~/rpmbuild/SOURCES/
-	@rpmbuild -ba support/libmemcached.spec
-	@cp ~/rpmbuild/RPMS/x86_64/libmemcached-$(VERSION)*.rpm .
-	@cp ~/rpmbuild/RPMS/x86_64/libmemcached-devel-$(VERSION)*.rpm .
-	@cp ~/rpmbuild/RPMS/x86_64/libmemcached-debuginfo-$(VERSION)*.rpm .
-	@cp ~/rpmbuild/SRPMS/libmemcached-$(VERSION)*.rpm .
-
-rpm: man distcheck generic
-
-release: rpm
-	@rpm --addsign libmemcached-$(VERSION)*.rpm .
-	@rpm --checksig libmemcached-$(VERSION)*.rpm .
-	@rpm --addsign libmemcached-devel-$(VERSION)*.rpm .
-	@rpm --checksig libmemcached-devel-$(VERSION)*.rpm .
-	@rpm --addsign libmemcached-debuginfo-$(VERSION)*.rpm .
-	@rpm --checksig libmemcached-debuginfo-$(VERSION)*.rpm .
-
 merge-clean:
 	@find ./ | $(GREP) \.gcda | xargs rm -f
 	@find ./ | $(GREP) \.gcno | xargs rm -f
 	@find ./ | $(GREP) \.gz | xargs rm -f
-	@find ./ | $(GREP) \.orig | xargs rm -f
+	@find ./ | $(GREP) \.moved | xargs rm -r -f
+	@find ./ | $(GREP) \\.orig | xargs rm -f
 	@find ./ | $(GREP) \.rej | xargs rm -f
-	@find ./ | $(GREP) \.rpm | xargs rm -f
+	@rm -f *\.rpm
 	@find ./ | $(GREP) \.THIS | xargs rm -f
 	@find ./ | $(GREP) \.OTHER | xargs rm -f
 	@find ./ | $(GREP) \.BASE | xargs rm -f

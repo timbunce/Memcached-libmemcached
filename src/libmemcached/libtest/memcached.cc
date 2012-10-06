@@ -150,7 +150,7 @@ public:
 
     if (memcached_failed(rc) or ret == false)
     {
-      Error << "libmemcached_util_ping(" << hostname() << ", " << port() << ") error: " << memcached_strerror(NULL, rc);
+      error(memcached_strerror(NULL, rc));
     }
 
     return ret;
@@ -332,16 +332,6 @@ public:
 
   bool ping()
   {
-    // Memcached is slow to start, so we need to do this
-    if (pid_file().empty() == false)
-    {
-      if (wait_for_pidfile() == false)
-      {
-        Error << "Pidfile was not found:" << pid_file();
-        return -1;
-      }
-    }
-
     memcached_return_t rc;
     bool ret;
 
@@ -356,7 +346,7 @@ public:
 
     if (memcached_failed(rc) or ret == false)
     {
-      Error << "libmemcached_util_ping2(" << hostname() << ", " << port() << ", " << username() << ", " << password() << ") error: " << memcached_strerror(NULL, rc);
+      error(memcached_strerror(NULL, rc));
     }
 
     return ret;
@@ -375,15 +365,17 @@ bool Memcached::build(size_t argc, const char *argv[])
   }
 
   add_option("-l", "localhost");
+#ifndef TARGET_OS_OSX
   add_option("-m", "128");
   add_option("-M");
+#endif
 
   if (sasl())
   {
     add_option(sasl());
   }
 
-  for (int x= 0 ; x < argc ; x++)
+  for (size_t x= 0 ; x < argc ; x++)
   {
     add_option(argv[x]);
   }

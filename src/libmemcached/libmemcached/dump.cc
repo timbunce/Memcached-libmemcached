@@ -61,14 +61,14 @@ static memcached_return_t ascii_dump(memcached_st *memc, memcached_dump_fn *call
     libmemcached_io_vector_st vector[]=
     {
       { memcached_literal_param("stats cachedump ") },
-      { buffer, buffer_length },
+      { buffer, size_t(buffer_length) },
       { memcached_literal_param(" 0\r\n") }
     };
 
     // Send message to all servers
     for (uint32_t server_key= 0; server_key < memcached_server_count(memc); server_key++)
     {
-      memcached_server_write_instance_st instance= memcached_server_instance_fetch(memc, server_key);
+      org::libmemcached::Instance* instance= memcached_instance_fetch(memc, server_key);
 
       memcached_return_t vdo_rc;
       if (memcached_success((vdo_rc= memcached_vdo(instance, vector, 3, true))))
@@ -82,7 +82,7 @@ static memcached_return_t ascii_dump(memcached_st *memc, memcached_dump_fn *call
     }
 
     // Collect the returned items
-    memcached_server_write_instance_st instance;
+    org::libmemcached::Instance* instance;
     while ((instance= memcached_io_get_readable_server(memc)))
     {
       memcached_return_t response_rc= memcached_response(instance, buffer, MEMCACHED_DEFAULT_COMMAND_SIZE, NULL);

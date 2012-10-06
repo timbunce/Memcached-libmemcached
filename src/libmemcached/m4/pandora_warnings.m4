@@ -98,7 +98,7 @@ AC_DEFUN([PANDORA_WARNINGS],[
     AC_CACHE_CHECK([whether it is safe to use -floop-parallelize-all],
       [ac_cv_safe_to_use_floop_parallelize_all_],
       [save_CFLAGS="$CFLAGS"
-       CFLAGS="-floop-parallelize-all ${AM_CFLAGS} ${CFLAGS}"
+       CFLAGS="-Werror -floop-parallelize-all ${AM_CFLAGS} ${CFLAGS}"
        AC_COMPILE_IFELSE(
          [AC_LANG_PROGRAM([],[])],
          [ac_cv_safe_to_use_floop_parallelize_all_=yes],
@@ -276,22 +276,6 @@ uint16_t x= htons(80);
       ])
       AS_IF([test "$ac_cv_safe_to_use_Wframe_larger_than_" = "yes"],
             [CXX_WARNINGS="${CXX_WARNINGS} -Wframe-larger-than=32768"])
-  
-      AC_CACHE_CHECK([whether it is safe to use -Wlogical-op],
-        [ac_cv_safe_to_use_Wlogical_op_],
-        [save_CFLAGS="$CFLAGS"
-         CFLAGS="${W_FAIL} -pedantic -Wlogical-op ${AM_CFLAGS} ${CFLAGS}"
-         AC_COMPILE_IFELSE([
-           AC_LANG_PROGRAM(
-           [[
-#include <stdio.h>
-           ]], [[]])
-        ],
-        [ac_cv_safe_to_use_Wlogical_op_=yes],
-        [ac_cv_safe_to_use_Wlogical_op_=no])
-      CFLAGS="$save_CFLAGS"])
-      AS_IF([test "$ac_cv_safe_to_use_Wlogical_op_" = "yes"],
-            [CC_WARNINGS="${CC_WARNINGS} -Wlogical-op"])
   
       AC_CACHE_CHECK([whether it is safe to use -Wredundant-decls from C++],
         [ac_cv_safe_to_use_Wredundant_decls_],

@@ -40,11 +40,20 @@
 
 namespace libtest {
 
-fatal::fatal(const char *file_arg, int line_arg, const char *func_arg, const char *format, ...) :
-  std::runtime_error(func_arg),
-  _line(line_arg),
-  _file(file_arg),
-  _func(func_arg)
+exception::exception(const char *file_, int line_, const char *func_) :
+  std::runtime_error(func_),
+  _file(file_),
+  _line(line_),
+  _func(func_)
+  {
+  }
+
+#ifndef __INTEL_COMPILER
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+
+fatal::fatal(const char *file_, int line_, const char *func_, const char *format, ...) :
+  exception(file_, line_, func_)
   {
     va_list args;
     va_start(args, format);
@@ -52,9 +61,7 @@ fatal::fatal(const char *file_arg, int line_arg, const char *func_arg, const cha
     int last_error_length= vsnprintf(last_error, sizeof(last_error), format, args);
     va_end(args);
 
-    strncpy(_mesg, last_error, sizeof(_mesg));
-
-    snprintf(_error_message, sizeof(_error_message), "%s:%d FATAL:%s (%s)", _file, int(_line), last_error, _func);
+    snprintf(_error_message, sizeof(_error_message), "%.*s", last_error_length, last_error);
   }
 
 static bool _disabled= false;
@@ -85,18 +92,34 @@ void fatal::increment_disabled_counter()
   _counter++;
 }
 
-disconnected::disconnected(const char *file, int line, const char *func, const char *instance, const in_port_t port, const char *format, ...) :
-  _port(port),
-  std::runtime_error(func)
+disconnected::disconnected(const char *file_, int line_, const char *func_,
+                           const std::string& instance, const in_port_t port,
+                           const char *format, ...) :
+  exception(file_, line_, func_),
+  _port(port)
 {
-  strncpy(_instance, instance, sizeof(_instance));
   va_list args;
   va_start(args, format);
   char last_error[BUFSIZ];
   (void)vsnprintf(last_error, sizeof(last_error), format, args);
   va_end(args);
 
-  snprintf(_error_message, sizeof(_error_message), "%s:%d FATAL:%s (%s)", file, int(line), last_error, func);
+  snprintf(_error_message, sizeof(_error_message), "%s:%u %s", instance.c_str(), uint32_t(port), last_error);
+}
+
+start::start(const char *file_, int line_, const char *func_,
+             const std::string& instance, const in_port_t port,
+             const char *format, ...) :
+  exception(file_, line_, func_),
+  _port(port)
+{
+  va_list args;
+  va_start(args, format);
+  char last_error[BUFSIZ];
+  (void)vsnprintf(last_error, sizeof(last_error), format, args);
+  va_end(args);
+
+  snprintf(_error_message, sizeof(_error_message), "%s:%u %s", instance.c_str(), uint32_t(port), last_error);
 }
 
 } // namespace libtest

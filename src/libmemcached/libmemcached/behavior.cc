@@ -42,6 +42,26 @@
 #include <ctime>
 #include <sys/types.h>
 
+bool memcached_is_consistent_distribution(const memcached_st* memc)
+{
+  switch (memc->distribution)
+  {
+  case MEMCACHED_DISTRIBUTION_CONSISTENT:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA_SPY:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED:
+    return true;
+
+  case MEMCACHED_DISTRIBUTION_MODULA:
+  case MEMCACHED_DISTRIBUTION_RANDOM:
+  case MEMCACHED_DISTRIBUTION_VIRTUAL_BUCKET:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_MAX:
+    break;
+  }
+
+  return false;
+}
+
 /*
   This function is used to modify the behavior of running client.
 
@@ -162,13 +182,17 @@ memcached_return_t memcached_behavior_set(memcached_st *ptr,
 
   case MEMCACHED_BEHAVIOR_KETAMA_WEIGHTED:
     {
+      if (bool(data) == false)
+      {
+        return memcached_behavior_set(ptr, MEMCACHED_BEHAVIOR_KETAMA, true);
+      }
+
       (void)memcached_behavior_set_key_hash(ptr, MEMCACHED_HASH_MD5);
       (void)memcached_behavior_set_distribution_hash(ptr, MEMCACHED_HASH_MD5);
-      ptr->ketama.weighted= bool(data);
       /**
         @note We try to keep the same distribution going. This should be deprecated and rewritten.
       */
-      return memcached_behavior_set_distribution(ptr, MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA);
+      return memcached_behavior_set_distribution(ptr, MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED);
     }
 
   case MEMCACHED_BEHAVIOR_HASH:
@@ -331,13 +355,17 @@ uint64_t memcached_behavior_get(memcached_st *ptr,
     return ptr->flags.verify_key;
 
   case MEMCACHED_BEHAVIOR_KETAMA_WEIGHTED:
-    return ptr->ketama.weighted;
+    if (memcached_is_consistent_distribution(ptr))
+    {
+      return memcached_is_weighted_ketama(ptr);
+    }
+    return false;
 
   case MEMCACHED_BEHAVIOR_DISTRIBUTION:
     return ptr->distribution;
 
   case MEMCACHED_BEHAVIOR_KETAMA:
-    return (ptr->distribution == MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA) ? (uint64_t) 1 : 0;
+    return memcached_is_consistent_distribution(ptr);
 
   case MEMCACHED_BEHAVIOR_HASH:
     return hashkit_get_function(&ptr->hashkit);
@@ -383,7 +411,7 @@ uint64_t memcached_behavior_get(memcached_st *ptr,
         return (uint64_t) ptr->send_size;
       }
 
-      memcached_server_write_instance_st instance= memcached_server_instance_fetch(ptr, 0);
+      org::libmemcached::Instance* instance= memcached_instance_fetch(ptr, 0);
 
       if (instance) // If we have an instance we test, otherwise we just set and pray
       {
@@ -417,7 +445,7 @@ uint64_t memcached_behavior_get(memcached_st *ptr,
       if (ptr->recv_size != -1) // If value is -1 then we are using the default
         return (uint64_t) ptr->recv_size;
 
-      memcached_server_write_instance_st instance= memcached_server_instance_fetch(ptr, 0);
+      org::libmemcached::Instance* instance= memcached_instance_fetch(ptr, 0);
 
       /**
         @note REFACTOR
@@ -487,23 +515,37 @@ uint64_t memcached_behavior_get(memcached_st *ptr,
 
 memcached_return_t memcached_behavior_set_distribution(memcached_st *ptr, memcached_server_distribution_t type)
 {
-  if (type < MEMCACHED_DISTRIBUTION_CONSISTENT_MAX)
+  switch (type)
   {
-    if (MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED)
-    {
-      ptr->ketama.weighted= true;
-    }
-    else
-    {
-      ptr->ketama.weighted= false;
-    }
+  case MEMCACHED_DISTRIBUTION_MODULA:
+    break;
 
-    ptr->distribution= type;
-    return run_distribution(ptr);
+  case MEMCACHED_DISTRIBUTION_CONSISTENT:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA:
+    memcached_set_weighted_ketama(ptr, false);
+    break;
+
+  case MEMCACHED_DISTRIBUTION_RANDOM:
+    break;
+
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA_SPY:
+    break;
+
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_WEIGHTED:
+    memcached_set_weighted_ketama(ptr, true);
+    break;
+
+  case MEMCACHED_DISTRIBUTION_VIRTUAL_BUCKET:
+    break;
+
+  default:
+  case MEMCACHED_DISTRIBUTION_CONSISTENT_MAX:
+    return memcached_set_error(*ptr, MEMCACHED_INVALID_ARGUMENTS, MEMCACHED_AT,
+                               memcached_literal_param("Invalid memcached_server_distribution_t"));
   }
+  ptr->distribution= type;
 
-  return memcached_set_error(*ptr, MEMCACHED_INVALID_ARGUMENTS, MEMCACHED_AT,
-                             memcached_literal_param("Invalid memcached_server_distribution_t"));
+  return run_distribution(ptr);
 }
 
 
@@ -531,7 +573,9 @@ memcached_hash_t memcached_behavior_get_key_hash(memcached_st *ptr)
 memcached_return_t memcached_behavior_set_distribution_hash(memcached_st *ptr, memcached_hash_t type)
 {
   if (hashkit_success(hashkit_set_distribution_function(&ptr->hashkit, (hashkit_hash_algorithm_t)type)))
+  {
     return MEMCACHED_SUCCESS;
+  }
 
   return memcached_set_error(*ptr, MEMCACHED_INVALID_ARGUMENTS, MEMCACHED_AT,
                              memcached_literal_param("Invalid memcached_hash_t()"));

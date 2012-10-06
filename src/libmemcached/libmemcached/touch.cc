@@ -38,7 +38,7 @@
 #include <libmemcached/common.h>
 #include <libmemcached/memcached/protocol_binary.h>
 
-static memcached_return_t ascii_touch(memcached_server_write_instance_st instance,
+static memcached_return_t ascii_touch(org::libmemcached::Instance* instance,
                                       const char *key, size_t key_length,
                                       time_t expiration)
 {
@@ -56,7 +56,7 @@ static memcached_return_t ascii_touch(memcached_server_write_instance_st instanc
     { memcached_literal_param("touch ") },
     { memcached_array_string(instance->root->_namespace), memcached_array_size(instance->root->_namespace) },
     { key, key_length },
-    { expiration_buffer, expiration_buffer_length },
+    { expiration_buffer, size_t(expiration_buffer_length) },
     { memcached_literal_param("\r\n") }
   };
 
@@ -70,12 +70,14 @@ static memcached_return_t ascii_touch(memcached_server_write_instance_st instanc
   return rc;
 }
 
-static memcached_return_t binary_touch(memcached_server_write_instance_st instance,
+static memcached_return_t binary_touch(org::libmemcached::Instance* instance,
                                        const char *key, size_t key_length,
                                        time_t expiration)
 {
   protocol_binary_request_touch request= {}; //{.bytes= {0}};
-  request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+
+  initialize_binary_request(instance, request.message.header);
+
   request.message.header.request.opcode= PROTOCOL_BINARY_CMD_TOUCH;
   request.message.header.request.extlen= 4;
   request.message.header.request.keylen= htons((uint16_t)(key_length +memcached_array_size(instance->root->_namespace)));
@@ -127,7 +129,7 @@ memcached_return_t memcached_touch_by_key(memcached_st *ptr,
   }
 
   uint32_t server_key= memcached_generate_hash_with_redistribution(ptr, group_key, group_key_length);
-  memcached_server_write_instance_st instance= memcached_server_instance_fetch(ptr, server_key);
+  org::libmemcached::Instance* instance= memcached_instance_fetch(ptr, server_key);
 
   if (ptr->flags.binary_protocol)
   {

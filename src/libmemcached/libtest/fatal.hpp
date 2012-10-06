@@ -42,11 +42,53 @@
 #define __PRETTY_FUNCTION__ __func__
 #endif
 
+#define YATL_STRINGIFY(x) #x
+#define YATL_TOSTRING(x) YATL_STRINGIFY(x)
+#define YATL_AT __FILE__ ":" YATL_TOSTRING(__LINE__)
+#define YATL_AT_PARAM __func__, AT
+#define YATL_UNIQUE __FILE__ ":" YATL_TOSTRING(__LINE__) "_unique"
+#define YATL_UNIQUE_FUNC_NAME __FILE__ ":" YATL_TOSTRING(__LINE__) "_unique_func"
+
 #define LIBYATL_DEFAULT_PARAM __FILE__, __LINE__, __PRETTY_FUNCTION__
 
 namespace libtest {
 
-class fatal : std::runtime_error
+class exception : public std::runtime_error
+{
+public:
+  exception(const char *, int, const char *);
+
+  int line() const
+  {
+    return _line;
+  }
+
+  const char*  file() const
+  {
+    return _file;
+  }
+
+  const char* func() const
+  {
+    return _func;
+  }
+
+  const char* mesg() const throw()
+  {
+    return _error_message;
+  }
+
+
+protected:
+  char _error_message[BUFSIZ];
+
+private:
+  const char*  _file;
+  int _line;
+  const char* _func;
+};
+
+class fatal : public exception
 {
 public:
   fatal(const char *file, int line, const char *func, const char *format, ...);
@@ -56,11 +98,6 @@ public:
     return _error_message;
   }
 
-  const char* mesg() const throw()
-  {
-    return _error_message;
-  }
-
   // The following are just for unittesting the exception class
   static bool is_disabled();
   static void disable();
@@ -68,33 +105,13 @@ public:
   static uint32_t disabled_counter();
   static void increment_disabled_counter();
 
-  int line()
-  {
-    return _line;
-  }
-
-  const char*  file()
-  {
-    return _file;
-  }
-
-  const char* func()
-  {
-    return _func;
-  }
-
 private:
-  char _error_message[BUFSIZ];
-  char _mesg[BUFSIZ];
-  int _line;
-  const char*  _file;
-  const char* _func;
 };
 
-class disconnected : std::runtime_error
+class disconnected : public exception
 {
 public:
-  disconnected(const char *file, int line, const char *func, const char *instance, const in_port_t port, const char *format, ...);
+  disconnected(const char *file, int line, const char *func, const std::string&, const in_port_t port, const char *format, ...);
 
   const char* what() const throw()
   {
@@ -109,7 +126,28 @@ public:
   static void increment_disabled_counter();
 
 private:
-  char _error_message[BUFSIZ];
+  in_port_t _port;
+  char _instance[1024];
+};
+
+class start : public exception
+{
+public:
+  start(const char *file, int line, const char *func, const std::string&, const in_port_t port, const char *format, ...);
+
+  const char* what() const throw()
+  {
+    return _error_message;
+  }
+
+  // The following are just for unittesting the exception class
+  static bool is_disabled();
+  static void disable();
+  static void enable();
+  static uint32_t disabled_counter();
+  static void increment_disabled_counter();
+
+private:
   in_port_t _port;
   char _instance[1024];
 };

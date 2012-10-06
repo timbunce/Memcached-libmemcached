@@ -43,13 +43,13 @@
 
 static void *world_create(libtest::server_startup_st& servers, test_return_t& error)
 {
-  if (HAVE_MEMCACHED_BINARY == 0)
+  if (libtest::has_memcached() == false)
   {
     error= TEST_SKIPPED;
     return NULL;
   }
 
-  if (servers.sasl() and (LIBMEMCACHED_WITH_SASL_SUPPORT == 0 or MEMCACHED_SASL_BINARY == 0))
+  if ((servers.sasl()) and ((LIBMEMCACHED_WITH_SASL_SUPPORT == 0) or (MEMCACHED_SASL_BINARY == 0)))
   {
     error= TEST_SKIPPED;
     return NULL;
@@ -70,14 +70,22 @@ static void *world_create(libtest::server_startup_st& servers, test_return_t& er
     {
       if (server_startup(servers, "memcached-sasl", port, 0, NULL) == false)
       {
+        error= TEST_SKIPPED;
+#if 0
         fatal_message("Could not start memcached-sasl");
+#endif
+        return NULL;
       }
     }
     else
     {
       if (server_startup(servers, "memcached", port, 0, NULL) == false)
       {
+        error= TEST_SKIPPED;
+#if 0
         fatal_message("Could not start memcached");
+#endif
+        return NULL;
       }
     }
   }
