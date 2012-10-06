@@ -95,7 +95,7 @@ collection_st collection[] ={
 
 static void *world_create(server_startup_st& servers, test_return_t& error)
 {
-  if (HAVE_MEMCACHED_BINARY == 0)
+  if (libtest::has_memcached() == false)
   {
     error= TEST_SKIPPED;
     return NULL;
@@ -103,14 +103,14 @@ static void *world_create(server_startup_st& servers, test_return_t& error)
 
   if (server_startup(servers, "memcached", libtest::default_port(), 0, NULL) == 0)
   {
-    error= TEST_FAILURE;
+    error= TEST_SKIPPED;
   }
 
   return &servers;
 }
 
 
-void get_world(Framework *world)
+void get_world(libtest::Framework* world)
 {
   executable= "./clients/memflush";
   world->collections(collection);

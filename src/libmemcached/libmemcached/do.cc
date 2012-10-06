@@ -11,7 +11,7 @@
 
 #include <libmemcached/common.h>
 
-memcached_return_t memcached_vdo(memcached_server_write_instance_st instance,
+memcached_return_t memcached_vdo(org::libmemcached::Instance* instance,
                                  libmemcached_io_vector_st vector[],
                                  const size_t count,
                                  const bool with_flush)
@@ -23,7 +23,7 @@ memcached_return_t memcached_vdo(memcached_server_write_instance_st instance,
   if (memcached_failed(rc= memcached_connect(instance)))
   {
     WATCHPOINT_ERROR(rc);
-    assert_msg(instance->error_messages, "memcached_connect() returned an error but the memcached_server_write_instance_st showed none.");
+    assert_msg(instance->error_messages, "memcached_connect() returned an error but the Instance showed none.");
     return rc;
   }
 
@@ -48,7 +48,11 @@ memcached_return_t memcached_vdo(memcached_server_write_instance_st instance,
     vector[0].length= UDP_DATAGRAM_HEADER_LENGTH;
 
     msg.msg_iov= (struct iovec*)vector;
+#if defined(TARGET_OS_OSX) && TARGET_OS_OSX
+    msg.msg_iovlen= int(count);
+#else
     msg.msg_iovlen= count;
+#endif
 
     uint32_t retry= 5;
     while (--retry)

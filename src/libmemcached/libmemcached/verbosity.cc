@@ -44,7 +44,7 @@ struct context_st
 };
 
 static memcached_return_t _set_verbosity(const memcached_st *,
-                                         const memcached_server_st *server,
+                                         const memcached_server_instance_st server,
                                          void *context)
 {
  libmemcached_io_vector_st *vector= (libmemcached_io_vector_st *)context;
@@ -56,7 +56,7 @@ static memcached_return_t _set_verbosity(const memcached_st *,
 
   if (rc == MEMCACHED_SUCCESS)
   {
-    memcached_server_write_instance_st instance= memcached_server_instance_fetch(memc_ptr, 0);
+    org::libmemcached::Instance* instance= memcached_instance_fetch(memc_ptr, 0);
 
 
     rc= memcached_vdo(instance, vector, 4, true);
@@ -96,7 +96,7 @@ memcached_return_t memcached_verbosity(memcached_st *ptr, uint32_t verbosity)
   {
     { NULL, 0 },
     { memcached_literal_param("verbosity ") },
-    { buffer, send_length },
+    { buffer, size_t(send_length) },
     { memcached_literal_param("\r\n") }
   };
 

@@ -65,7 +65,7 @@ sasl_callback_t *memcached_get_sasl_callbacks(memcached_st *ptr)
  * @param raddr remote address (out)
  * @return true on success false otherwise (errno contains more info)
  */
-static memcached_return_t resolve_names(memcached_server_st& server, char *laddr, size_t laddr_length, char *raddr, size_t raddr_length)
+static memcached_return_t resolve_names(memcached_instance_st& server, char *laddr, size_t laddr_length, char *raddr, size_t raddr_length)
 {
   char host[NI_MAXHOST];
   char port[NI_MAXSERV];
@@ -74,12 +74,12 @@ static memcached_return_t resolve_names(memcached_server_st& server, char *laddr
 
   if (getsockname(server.fd, (struct sockaddr *)&saddr, &salen) < 0)
   {
-    return memcached_set_errno(server, MEMCACHED_ERRNO, MEMCACHED_AT);
+    return memcached_set_error(server, MEMCACHED_HOST_LOOKUP_FAILURE, MEMCACHED_AT);
   }
 
   if (getnameinfo((struct sockaddr *)&saddr, salen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV) < 0)
   {
-    return MEMCACHED_HOST_LOOKUP_FAILURE;
+    return memcached_set_error(server, MEMCACHED_HOST_LOOKUP_FAILURE, MEMCACHED_AT);
   }
 
   (void)snprintf(laddr, laddr_length, "%s;%s", host, port);
@@ -87,7 +87,7 @@ static memcached_return_t resolve_names(memcached_server_st& server, char *laddr
 
   if (getpeername(server.fd, (struct sockaddr *)&saddr, &salen) < 0)
   {
-    return memcached_set_errno(server, MEMCACHED_ERRNO, MEMCACHED_AT);
+    return memcached_set_error(server, MEMCACHED_HOST_LOOKUP_FAILURE, MEMCACHED_AT);
   }
 
   if (getnameinfo((struct sockaddr *)&saddr, salen, host, sizeof(host),
@@ -123,7 +123,7 @@ static void sasl_startup_function(void)
 
 } // extern "C"
 
-memcached_return_t memcached_sasl_authenticate_connection(memcached_server_st *server)
+memcached_return_t memcached_sasl_authenticate_connection(org::libmemcached::Instance* server)
 {
   if (LIBMEMCACHED_WITH_SASL_SUPPORT == 0)
   {
@@ -147,7 +147,9 @@ memcached_return_t memcached_sasl_authenticate_connection(memcached_server_st *s
    * as authenticated
  */
   protocol_binary_request_no_extras request= { };
-  request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+
+  initialize_binary_request(ptr, request.message.header);
+
   request.message.header.request.opcode= PROTOCOL_BINARY_CMD_SASL_LIST_MECHS;
 
   if (memcached_io_write(server, request.bytes,

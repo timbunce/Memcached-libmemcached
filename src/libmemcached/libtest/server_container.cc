@@ -55,12 +55,14 @@ static inline std::string &rtrim(std::string &s)
 
 namespace libtest {
 
+Server* server_startup_st::last()
+{
+  return servers.back();
+}
+
 void server_startup_st::push_server(Server *arg)
 {
   servers.push_back(arg);
-
-  char port_str[NI_MAXSERV];
-  snprintf(port_str, sizeof(port_str), "%u", int(arg->port()));
 
   std::string server_config_string;
   if (arg->has_socket())
@@ -73,6 +75,9 @@ void server_startup_st::push_server(Server *arg)
   }
   else
   {
+    char port_str[NI_MAXSERV]= { 0 };
+    snprintf(port_str, sizeof(port_str), "%u", int(arg->port()));
+
     server_config_string+= "--server=";
     server_config_string+= arg->hostname();
     server_config_string+= ":";
@@ -111,7 +116,7 @@ bool server_startup_st::shutdown(uint32_t host_to_shutdown)
 
 void server_startup_st::clear()
 {
-  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); iter++)
+  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); ++iter)
   {
     delete *iter;
   }
@@ -121,7 +126,7 @@ void server_startup_st::clear()
 bool server_startup_st::check() const
 {
   bool success= true;
-  for (std::vector<Server *>::const_iterator iter= servers.begin(); iter != servers.end(); iter++)
+  for (std::vector<Server *>::const_iterator iter= servers.begin(); iter != servers.end(); ++iter)
   {
     if ((*iter)->check()  == false)
     {
@@ -135,7 +140,7 @@ bool server_startup_st::check() const
 bool server_startup_st::shutdown()
 {
   bool success= true;
-  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); iter++)
+  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); ++iter)
   {
     if ((*iter)->has_pid() and (*iter)->kill() == false)
     {
@@ -149,7 +154,7 @@ bool server_startup_st::shutdown()
 
 void server_startup_st::restart()
 {
-  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); iter++)
+  for (std::vector<Server *>::iterator iter= servers.begin(); iter != servers.end(); ++iter)
   {
     (*iter)->start();
   }
@@ -177,6 +182,11 @@ bool server_startup_st::validate()
 
 bool server_startup(server_startup_st& construct, const std::string& server_type, in_port_t try_port, int argc, const char *argv[], const bool opt_startup_message)
 {
+  return construct.start_server(server_type, try_port, argc, argv, opt_startup_message);
+}
+
+bool server_startup_st::start_server(const std::string& server_type, in_port_t try_port, int argc, const char *argv[], const bool opt_startup_message)
+{
   if (try_port <= 0)
   {
     throw libtest::fatal(LIBYATL_DEFAULT_PARAM, "was passed the invalid port number %d", int(try_port));
@@ -193,6 +203,16 @@ bool server_startup(server_startup_st& construct, const std::string& server_type
         if (HAVE_LIBGEARMAN)
         {
           server= build_gearmand("localhost", try_port);
+        }
+      }
+    }
+    else if (server_type.compare("hostile-gearmand") == 0)
+    {
+      if (GEARMAND_BINARY)
+      {
+        if (HAVE_LIBGEARMAN)
+        {
+          server= build_gearmand("localhost", try_port, "gearmand/hostile_gearmand");
         }
       }
     }
@@ -225,13 +245,13 @@ bool server_startup(server_startup_st& construct, const std::string& server_type
       {
         if (HAVE_LIBMEMCACHED)
         {
-          server= build_memcached_sasl("localhost", try_port, construct.username(), construct.password());
+          server= build_memcached_sasl("localhost", try_port, username(), password());
         }
       }
     }
     else if (server_type.compare("memcached") == 0)
     {
-      if (MEMCACHED_BINARY)
+      if (HAVE_MEMCACHED_BINARY)
       {
         if (HAVE_LIBMEMCACHED)
         {
@@ -252,7 +272,7 @@ bool server_startup(server_startup_st& construct, const std::string& server_type
 
     if (server == NULL)
     {
-      fatal_message("Launching of an unknown server was attempted");
+      throw libtest::fatal(LIBYATL_DEFAULT_PARAM, "Launching of an unknown server was attempted: %s", server_type.c_str());
     }
 
     /*
@@ -267,17 +287,16 @@ bool server_startup(server_startup_st& construct, const std::string& server_type
 
     server->build(argc, argv);
 
+#if 0
     if (false)
     {
       Out << "Pausing for startup, hit return when ready.";
       std::string gdb_command= server->base_command();
-      std::string options;
-#if 0
-      Out << "run " << server->args(options);
-#endif
       getchar();
     }
-    else if (server->start() == false)
+    else
+#endif
+      if (server->start() == false)
     {
       delete server;
       return false;
@@ -292,18 +311,32 @@ bool server_startup(server_startup_st& construct, const std::string& server_type
       }
     }
   }
+  catch (libtest::start err)
+  {
+    stream::cerr(err.file(), err.line(), err.func()) << err.what();
+    delete server;
+    return false;
+  }
+  catch (libtest::disconnected err)
+  {
+    stream::cerr(err.file(), err.line(), err.func()) << err.what();
+    delete server;
+    return false;
+  }
   catch (...)
   {
     delete server;
     throw;
   }
 
-  construct.push_server(server);
+  push_server(server);
 
   return true;
 }
 
-bool server_startup_st::start_socket_server(const std::string& server_type, const in_port_t try_port, int argc, const char *argv[])
+bool server_startup_st::start_socket_server(const std::string& server_type, const in_port_t try_port, int argc,
+                                            const char *argv[],
+                                            const bool opt_startup_message)
 {
   (void)try_port;
   Outn();
@@ -375,17 +408,18 @@ bool server_startup_st::start_socket_server(const std::string& server_type, cons
 
     server->build(argc, argv);
 
+#if 0
     if (false)
     {
       Out << "Pausing for startup, hit return when ready.";
       std::string gdb_command= server->base_command();
       std::string options;
-#if 0
       Out << "run " << server->args(options);
-#endif
       getchar();
     }
-    else if (server->start() == false)
+    else
+#endif
+      if (server->start() == false)
     {
       Error << "Failed to start " << *server;
       delete server;
@@ -393,7 +427,12 @@ bool server_startup_st::start_socket_server(const std::string& server_type, cons
     }
     else
     {
-      Out << "STARTING SERVER(pid:" << server->pid() << "): " << server->running();
+      if (opt_startup_message)
+      {
+        Outn();
+        Out << "STARTING SERVER(pid:" << server->pid() << "): " << server->running();
+        Outn();
+      }
     }
   }
   catch (...)

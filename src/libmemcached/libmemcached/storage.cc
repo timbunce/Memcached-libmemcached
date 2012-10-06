@@ -139,7 +139,7 @@ static inline uint8_t get_com_code(const memcached_storage_action_t verb, const 
 }
 
 static memcached_return_t memcached_send_binary(memcached_st *ptr,
-                                                memcached_server_write_instance_st server,
+                                                org::libmemcached::Instance* server,
                                                 uint32_t server_key,
                                                 const char *key,
                                                 const size_t key_length,
@@ -155,7 +155,8 @@ static memcached_return_t memcached_send_binary(memcached_st *ptr,
   protocol_binary_request_set request= {};
   size_t send_length= sizeof(request.bytes);
 
-  request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+  initialize_binary_request(server, request.message.header);
+
   request.message.header.request.opcode= get_com_code(verb, reply);
   request.message.header.request.keylen= htons((uint16_t)(key_length + memcached_array_size(ptr->_namespace)));
   request.message.header.request.datatype= PROTOCOL_BINARY_RAW_BYTES;
@@ -216,7 +217,7 @@ static memcached_return_t memcached_send_binary(memcached_st *ptr,
         server_key= 0;
       }
 
-      memcached_server_write_instance_st instance= memcached_server_instance_fetch(ptr, server_key);
+      org::libmemcached::Instance* instance= memcached_instance_fetch(ptr, server_key);
 
       if (memcached_vdo(instance, vector, 5, false) != MEMCACHED_SUCCESS)
       {
@@ -244,7 +245,7 @@ static memcached_return_t memcached_send_binary(memcached_st *ptr,
 }
 
 static memcached_return_t memcached_send_ascii(memcached_st *ptr,
-                                               memcached_server_write_instance_st instance,
+                                               org::libmemcached::Instance* instance,
                                                const char *key,
                                                const size_t key_length,
                                                const char *value,
@@ -298,10 +299,10 @@ static memcached_return_t memcached_send_ascii(memcached_st *ptr,
     { storage_op_string(verb), strlen(storage_op_string(verb))},
     { memcached_array_string(ptr->_namespace), memcached_array_size(ptr->_namespace) },
     { key, key_length },
-    { flags_buffer, flags_buffer_length },
-    { expiration_buffer, expiration_buffer_length },
-    { value_buffer, value_buffer_length },
-    { cas_buffer, cas_buffer_length },
+    { flags_buffer, size_t(flags_buffer_length) },
+    { expiration_buffer, size_t(expiration_buffer_length) },
+    { value_buffer, size_t(value_buffer_length) },
+    { cas_buffer, size_t(cas_buffer_length) },
     { " noreply", reply ? 0 : memcached_literal_param_size(" noreply") },
     { memcached_literal_param("\r\n") },
     { value, value_length },
@@ -370,7 +371,7 @@ static inline memcached_return_t memcached_send(memcached_st *ptr,
   }
 
   uint32_t server_key= memcached_generate_hash_with_redistribution(ptr, group_key, group_key_length);
-  memcached_server_write_instance_st instance= memcached_server_instance_fetch(ptr, server_key);
+  org::libmemcached::Instance* instance= memcached_instance_fetch(ptr, server_key);
 
   WATCHPOINT_SET(instance->io_wait_count.read= 0);
   WATCHPOINT_SET(instance->io_wait_count.write= 0);

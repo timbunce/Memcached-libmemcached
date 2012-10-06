@@ -62,6 +62,12 @@
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
 
+#ifndef __INTEL_COMPILER
+#ifndef __clang__
+#pragma GCC diagnostic ignored "-Wlogical-op"
+#endif
+#endif
+
 int conf_lex(YYSTYPE* lvalp, void* scanner);
 
 #define select_yychar(__context) yychar == UNKNOWN ? ( (__context)->previous_token == END ? UNKNOWN : (__context)->previous_token ) : yychar   
@@ -133,6 +139,7 @@ inline void __config_error(Context *context, yyscan_t *scanner, const char *erro
 %token _TCP_KEEPALIVE
 %token _TCP_KEEPIDLE
 %token _TCP_NODELAY
+%token FETCH_VERSION
 
 /* Callbacks */
 %token NAMESPACE
@@ -227,7 +234,7 @@ statement:
 expression:
           SERVER HOSTNAME optional_port optional_weight
           {
-            if (memcached_failed(context->rc= memcached_server_add_with_weight(context->memc, $2.c_str, $3, $4)))
+            if (memcached_failed(context->rc= memcached_server_add_with_weight(context->memc, $2.c_str, $3, uint32_t($4))))
             {
               char buffer[1024];
               snprintf(buffer, sizeof(buffer), "Failed to add server: %s:%u", $2.c_str, uint32_t($3));
@@ -237,7 +244,7 @@ expression:
           }
         | SERVER IPADDRESS optional_port optional_weight
           {
-            if (memcached_failed(context->rc= memcached_server_add_with_weight(context->memc, $2.c_str, $3, $4)))
+            if (memcached_failed(context->rc= memcached_server_add_with_weight(context->memc, $2.c_str, $3, uint32_t($4))))
             {
               char buffer[1024];
               snprintf(buffer, sizeof(buffer), "Failed to add server: %s:%u", $2.c_str, uint32_t($3));
@@ -247,10 +254,10 @@ expression:
           }
         | SOCKET string optional_weight
           {
-            if (memcached_failed(context->rc= memcached_server_add_unix_socket_with_weight(context->memc, $2.c_str, $3)))
+            if (memcached_failed(context->rc= memcached_server_add_unix_socket_with_weight(context->memc, $2.c_str, uint32_t($3))))
             {
               char buffer[1024];
-              snprintf(buffer, sizeof(buffer), "Failed to add server: %s", $2.c_str);
+              snprintf(buffer, sizeof(buffer), "Failed to add socket: %s", $2.c_str);
               parser_abort(context, buffer);
             }
           }
@@ -260,11 +267,11 @@ expression:
           }
         | POOL_MIN NUMBER
           {
-            context->memc->configure.initial_pool_size= $2;
+            context->memc->configure.initial_pool_size= uint32_t($2);
           }
         | POOL_MAX NUMBER
           {
-            context->memc->configure.max_pool_size= $2;
+            context->memc->configure.max_pool_size= uint32_t($2);
           }
         | behaviors
         ;
@@ -281,6 +288,10 @@ behaviors:
             {
               parser_abort(context, memcached_last_error_message(context->memc));
             }
+          }
+        | FETCH_VERSION
+          {
+            memcached_flag(*context->memc, MEMCACHED_FLAG_IS_FETCHING_VERSION, true);
           }
         | DISTRIBUTION distribution
           {

@@ -51,6 +51,8 @@
 
 using namespace libtest;
 
+static std::string testing_service;
+
 static test_return_t LIBTOOL_COMMAND_test(void *)
 {
   test_true(getenv("LIBTOOL_COMMAND"));
@@ -177,9 +179,7 @@ static test_return_t var_drizzle_exists_test(void *)
 static test_return_t var_tmp_test(void *)
 {
   FILE *file= fopen("var/tmp/junk", "w+");
-  char buffer[1024];
-  const char *dir= getcwd(buffer, sizeof(buffer));
-  test_true_got(file, dir);
+  test_true(file);
   fclose(file);
   return TEST_SUCCESS;
 }
@@ -265,12 +265,12 @@ static test_return_t drizzled_cycle_test(void *object)
   test_true(servers and servers->validate());
 
 #if defined(HAVE_GEARMAND_BINARY) && HAVE_GEARMAND_BINARY
-  test_true(has_drizzled_binary());
+  test_true(has_drizzled());
 #endif
 
-  test_skip(true, has_drizzled_binary());
+  test_skip(true, has_drizzled());
 
-  test_true(server_startup(*servers, "drizzled", get_free_port(), 0, NULL));
+  test_skip(true, server_startup(*servers, "drizzled", get_free_port(), 0, NULL));
 
   return TEST_SUCCESS;
 }
@@ -281,16 +281,17 @@ static test_return_t gearmand_cycle_test(void *object)
   test_true(servers and servers->validate());
 
 #if defined(HAVE_GEARMAND_BINARY) && HAVE_GEARMAND_BINARY
-  test_true(has_gearmand_binary());
+  test_true(has_gearmand());
 #endif
 
-  test_skip(true, has_gearmand_binary());
+  test_skip(true, has_gearmand());
 
-  test_true(server_startup(*servers, "gearmand", get_free_port(), 0, NULL));
+  test_skip(true, server_startup(*servers, "gearmand", get_free_port(), 0, NULL));
 
   return TEST_SUCCESS;
 }
 
+#if 0
 static test_return_t memcached_light_cycle_TEST(void *object)
 {
   server_startup_st *servers= (server_startup_st*)object;
@@ -302,6 +303,7 @@ static test_return_t memcached_light_cycle_TEST(void *object)
 
   return TEST_SUCCESS;
 }
+#endif
 
 static test_return_t skip_shim(bool a, bool b)
 {
@@ -309,7 +311,7 @@ static test_return_t skip_shim(bool a, bool b)
   return TEST_SUCCESS;
 }
 
-static test_return_t test_skip_true_TEST(void *object)
+static test_return_t test_skip_true_TEST(void*)
 {
   test_compare(true, true);
   test_compare(false, false);
@@ -319,48 +321,57 @@ static test_return_t test_skip_true_TEST(void *object)
   return TEST_SUCCESS;
 }
 
-static test_return_t test_skip_false_TEST(void *object)
+static test_return_t test_skip_false_TEST(void*)
 {
   test_compare(TEST_SKIPPED, skip_shim(true, false));
   test_compare(TEST_SKIPPED, skip_shim(false, true));
   return TEST_SUCCESS;
 }
 
-static test_return_t memcached_cycle_test(void *object)
+static test_return_t server_startup_fail_TEST(void *object)
 {
   server_startup_st *servers= (server_startup_st*)object;
   test_true(servers);
 
-  if (MEMCACHED_BINARY and HAVE_LIBMEMCACHED) 
-  {
-    test_true(has_memcached_binary());
-    test_true(server_startup(*servers, "memcached", get_free_port(), 0, NULL));
+  test_compare(servers->start_server(testing_service, LIBTEST_FAIL_PORT, 0, NULL, true), false);
 
-    return TEST_SUCCESS;
-  }
-
-  return TEST_SKIPPED;
+  return TEST_SUCCESS;
 }
 
-static test_return_t memcached_socket_cycle_test(void *object)
+static test_return_t server_startup_TEST(void *object)
 {
   server_startup_st *servers= (server_startup_st*)object;
   test_true(servers);
 
-  if (MEMCACHED_BINARY)
-  {
-    if (HAVE_LIBMEMCACHED)
-    {
-      test_true(has_memcached_binary());
-      test_true(servers->start_socket_server("memcached", get_free_port(), 0, NULL));
+  test_true(servers->start_server(testing_service, get_free_port(), 0, NULL, true));
 
-      return TEST_SUCCESS;
-    }
-  }
+  test_true(servers->last());
+  pid_t last_pid= servers->last()->pid();
 
-  return TEST_SKIPPED;
+  test_compare(servers->last()->pid(), last_pid);
+  test_true(last_pid > 1);
+  test_compare(kill(last_pid, 0), 0);
+
+  test_true(servers->shutdown());
+#if 0
+  test_compare(servers->last()->pid(), -1);
+  test_compare(kill(last_pid, 0), -1);
+#endif
+
+  return TEST_SUCCESS;
 }
 
+static test_return_t socket_server_startup_TEST(void *object)
+{
+  server_startup_st *servers= (server_startup_st*)object;
+  test_true(servers);
+
+  test_true(servers->start_socket_server(testing_service, get_free_port(), 0, NULL, true));
+
+  return TEST_SUCCESS;
+}
+
+#if 0
 static test_return_t memcached_sasl_test(void *object)
 {
   server_startup_st *servers= (server_startup_st*)object;
@@ -372,7 +383,7 @@ static test_return_t memcached_sasl_test(void *object)
   {
     if (HAVE_LIBMEMCACHED)
     {
-      test_true(has_memcached_sasl_binary());
+      test_true(has_memcached_sasl());
       test_true(server_startup(*servers, "memcached-sasl", get_free_port(), 0, NULL));
 
       return TEST_SUCCESS;
@@ -381,6 +392,7 @@ static test_return_t memcached_sasl_test(void *object)
 
   return TEST_SKIPPED;
 }
+#endif
 
 static test_return_t application_true_BINARY(void *)
 {
@@ -424,7 +436,7 @@ static test_return_t application_true_fubar_BINARY(void *)
   const char *args[]= { "--fubar", 0 };
   test_compare(Application::SUCCESS, true_app.run(args));
   test_compare(Application::SUCCESS, true_app.wait());
-  test_compare(0, true_app.stdout_result().size());
+  test_zero(true_app.stdout_result().size());
 
   return TEST_SUCCESS;
 }
@@ -444,7 +456,7 @@ static test_return_t application_doesnotexist_BINARY(void *)
   test_compare(Application::INVALID, true_app.wait(false));
 #endif
 
-  test_compare(0, true_app.stdout_result().size());
+  test_zero(true_app.stdout_result().size());
 
   return TEST_SUCCESS;
 }
@@ -456,7 +468,7 @@ static test_return_t application_true_fubar_eq_doh_BINARY(void *)
   const char *args[]= { "--fubar=doh", 0 };
   test_compare(Application::SUCCESS, true_app.run(args));
   test_compare(Application::SUCCESS, true_app.wait());
-  test_compare(0, true_app.stdout_result().size());
+  test_zero(true_app.stdout_result().size());
 
   return TEST_SUCCESS;
 }
@@ -469,7 +481,7 @@ static test_return_t application_true_fubar_eq_doh_option_BINARY(void *)
 
   test_compare(Application::SUCCESS, true_app.run());
   test_compare(Application::SUCCESS, true_app.wait());
-  test_compare(0, true_app.stdout_result().size());
+  test_zero(true_app.stdout_result().size());
 
   return TEST_SUCCESS;
 }
@@ -549,7 +561,7 @@ static test_return_t application_echo_fubar_BINARY2(void *)
   true_app.add_option("fubar");
 
   test_compare(Application::SUCCESS, true_app.run());
-  test_compare(Application::SUCCESS, true_app.wait(false));
+  test_compare(Application::SUCCESS, true_app.join());
 
   libtest::vchar_t response;
   make_vector(response, test_literal_param("fubar\n"));
@@ -696,7 +708,7 @@ static test_return_t gdb_abort_services_appliction_TEST(void *)
 static test_return_t get_free_port_TEST(void *)
 {
   in_port_t ret_port;
-  test_true_hint((ret_port= get_free_port()), ret_port);
+  test_true((ret_port= get_free_port()));
   test_true(get_free_port() != default_port());
   test_true(get_free_port() != get_free_port());
 
@@ -720,6 +732,45 @@ static test_return_t number_of_cpus_TEST(void *)
   return TEST_SUCCESS;
 }
 
+static test_return_t check_dns_TEST(void *)
+{
+  test_warn(libtest::check_dns(), "Broken DNS server/no DNS server found");
+
+  return TEST_SUCCESS;
+}
+
+static test_return_t Timer_TEST(void *)
+{
+  int64_t minutes= random() % 50;
+  minutes++;
+
+  Timer check;
+
+  check.reset();
+  check.offset(minutes, 2, 200);
+
+  test_compare(check.minutes(), minutes);
+
+  return TEST_SUCCESS;
+}
+
+static test_return_t lookup_true_TEST(void *)
+{
+  test_warn(libtest::lookup("exist.gearman.info"), "dns is not currently working");
+  return TEST_SUCCESS;
+}
+
+static test_return_t lookup_false_TEST(void *)
+{
+  if (libtest::lookup("does_not_exist.gearman.info"))
+  {
+    Error << "Broken DNS server detected";
+    return TEST_SKIPPED;
+  }
+
+  return TEST_SUCCESS;
+}
+
 static test_return_t create_tmpfile_TEST(void *)
 {
   std::string tmp= create_tmpfile(__func__);
@@ -729,10 +780,10 @@ static test_return_t create_tmpfile_TEST(void *)
   Application touch_app("touch");
   const char *args[]= { tmp.c_str(), 0 };
   test_compare(Application::SUCCESS, touch_app.run(args));
-  test_compare(Application::SUCCESS, touch_app.wait(false));
+  test_compare(Application::SUCCESS, touch_app.join());
 
-  test_compare_hint(0, access(tmp.c_str(), R_OK), strerror(errno));
-  test_compare_hint(0, unlink(tmp.c_str()), strerror(errno));
+  test_compare(0, access(tmp.c_str(), R_OK));
+  test_compare(0, unlink(tmp.c_str()));
 
   return TEST_SUCCESS;
 }
@@ -757,14 +808,20 @@ static test_return_t default_port_TEST(void *)
 static test_return_t check_for_gearman(void *)
 {
   test_skip(true, HAVE_LIBGEARMAN);
-  test_skip(true, has_gearmand_binary());
+  test_skip(true, has_gearmand());
+
+  testing_service= "gearmand";
+
   return TEST_SUCCESS;
 }
 
 static test_return_t check_for_drizzle(void *)
 {
   test_skip(true, HAVE_LIBDRIZZLE);
-  test_skip(true, has_drizzled_binary());
+  test_skip(true, has_drizzled());
+
+  testing_service= "drizzled";
+
   return TEST_SUCCESS;
 }
 
@@ -780,22 +837,29 @@ test_st gearmand_tests[] ={
 #endif
   {"gearmand startup-shutdown", 0, gearmand_cycle_test },
   {"_compare(gearman_return_t)", 0, _compare_gearman_return_t_test },
+  {"server_startup(fail)", 0, server_startup_fail_TEST },
   {0, 0, 0}
 };
 
-static test_return_t check_for_libmemcached(void *)
+static test_return_t check_for_libmemcached(void* object)
 {
   test_skip(true, HAVE_LIBMEMCACHED);
-  test_skip(true, has_memcached_binary());
+  test_skip(true, has_memcached());
+
+  server_startup_st *servers= (server_startup_st*)object;
+  test_true(servers);
+  servers->clear();
+
+  testing_service= "memcached";
+
   return TEST_SUCCESS;
 }
 
-test_st memcached_tests[] ={
-  {"memcached startup-shutdown", 0, memcached_cycle_test },
-  {"memcached-light startup-shutdown", 0, memcached_light_cycle_TEST },
-  {"memcached(socket file) startup-shutdown", 0, memcached_socket_cycle_test },
-  {"memcached_sasl() startup-shutdown", 0, memcached_sasl_test },
+test_st memcached_TESTS[] ={
+  {"memcached startup-shutdown", 0, server_startup_TEST },
+  {"memcached(socket file) startup-shutdown", 0, socket_server_startup_TEST },
   {"_compare(memcached_return_t)", 0, _compare_memcached_return_t_test },
+  {"server_startup(fail)", 0, server_startup_fail_TEST },
   {0, 0, 0}
 };
 
@@ -885,6 +949,18 @@ test_st create_tmpfile_TESTS[] ={
   {0, 0, 0}
 };
 
+test_st timer_TESTS[] ={
+  {"libtest::Timer", 0, Timer_TEST },
+  {0, 0, 0}
+};
+
+test_st dns_TESTS[] ={
+  {"libtest::lookup(true)", 0, lookup_true_TEST },
+  {"libtest::lookup(false)", 0, lookup_false_TEST },
+  {"libtest::check_dns()", 0, check_dns_TEST },
+  {0, 0, 0}
+};
+
 test_st application_tests[] ={
   {"vchar_t", 0, vchar_t_TEST },
   {"vchar_t compare()", 0, vchar_t_compare_neg_TEST },
@@ -933,7 +1009,7 @@ collection_st collection[] ={
   {"directories", 0, 0, directories_tests},
   {"comparison", 0, 0, comparison_tests},
   {"gearmand", check_for_gearman, 0, gearmand_tests},
-  {"memcached", check_for_libmemcached, 0, memcached_tests},
+  {"memcached", check_for_libmemcached, 0, memcached_TESTS },
   {"drizzled", check_for_drizzle, 0, drizzled_tests},
   {"cmdline", 0, 0, cmdline_tests},
   {"application", 0, 0, application_tests},
@@ -943,6 +1019,8 @@ collection_st collection[] ={
   {"fatal", disable_fatal_exception, enable_fatal_exception, fatal_message_TESTS },
   {"number_of_cpus()", 0, 0, number_of_cpus_TESTS },
   {"create_tmpfile()", 0, 0, create_tmpfile_TESTS },
+  {"dns", 0, 0, dns_TESTS },
+  {"libtest::Timer", 0, 0, timer_TESTS },
   {0, 0, 0, 0}
 };
 
@@ -951,7 +1029,7 @@ static void *world_create(server_startup_st& servers, test_return_t&)
   return &servers;
 }
 
-void get_world(Framework *world)
+void get_world(libtest::Framework *world)
 {
   world->collections(collection);
   world->create(world_create);

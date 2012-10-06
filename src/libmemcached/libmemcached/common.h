@@ -73,6 +73,7 @@
 #include <libmemcached/watchpoint.h>
 #include <libmemcached/is.h>
 
+#include <libmemcached/instance.h>
 #include <libmemcached/server_instance.h>
 
 #ifdef HAVE_POLL_H
@@ -81,31 +82,31 @@
 #include "poll/poll.h"
 #endif
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef memcached_return_t (*memcached_server_execute_fn)(memcached_st *ptr, memcached_server_write_instance_st server, void *context);
 
-LIBMEMCACHED_LOCAL
-memcached_server_write_instance_st memcached_server_instance_fetch(memcached_st *ptr, uint32_t server_key);
-
-LIBMEMCACHED_LOCAL
-memcached_return_t memcached_server_execute(memcached_st *ptr,
-                                            memcached_server_execute_fn callback,
-                                            void *context);
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
 
+#ifdef __cplusplus
+org::libmemcached::Instance* memcached_instance_fetch(memcached_st *ptr, uint32_t server_key);
+#endif
+
+memcached_return_t memcached_server_execute(memcached_st *ptr,
+                                            memcached_server_execute_fn callback,
+                                            void *context);
 /* These are private not to be installed headers */
 #include <libmemcached/error.hpp>
 #include <libmemcached/memory.h>
 #include <libmemcached/io.h>
 #ifdef __cplusplus
 #include <libmemcached/string.hpp>
+#include <libmemcached/memcached/protocol_binary.h>
 #include <libmemcached/io.hpp>
 #include <libmemcached/udp.hpp>
 #include <libmemcached/do.hpp>
@@ -114,7 +115,9 @@ memcached_return_t memcached_server_execute(memcached_st *ptr,
 #include <libmemcached/allocators.hpp>
 #include <libmemcached/hash.hpp>
 #include <libmemcached/quit.hpp>
+#include <libmemcached/instance.hpp>
 #include <libmemcached/server.hpp>
+#include <libmemcached/flag.hpp>
 #include <libmemcached/behavior.hpp>
 #include <libmemcached/sasl.hpp>
 #include <libmemcached/server_list.hpp>
@@ -122,7 +125,6 @@ memcached_return_t memcached_server_execute(memcached_st *ptr,
 #include <libmemcached/internal.h>
 #include <libmemcached/array.h>
 #include <libmemcached/libmemcached_probes.h>
-#include <libmemcached/memcached/protocol_binary.h>
 #include <libmemcached/byteorder.h>
 #include <libmemcached/initialize_query.h>
 #ifdef __cplusplus
@@ -138,6 +140,7 @@ memcached_return_t memcached_server_execute(memcached_st *ptr,
 #include <libmemcached/key.hpp>
 #include <libmemcached/encoding_key.h>
 #include <libmemcached/result.h>
+#include <libmemcached/version.hpp>
 #endif
 
 #include <libmemcached/continuum.hpp>
@@ -162,15 +165,21 @@ memcached_return_t memcached_server_execute(memcached_st *ptr,
 extern "C" {
 #endif
 
-LIBMEMCACHED_LOCAL
 memcached_return_t run_distribution(memcached_st *ptr);
 
-#define memcached_server_response_increment(A) (A)->cursor_active++
-#define memcached_server_response_decrement(A) (A)->cursor_active--
-#define memcached_server_response_reset(A) (A)->cursor_active=0
+#define memcached_server_response_increment(A) (A)->cursor_active_++
+#define memcached_server_response_decrement(A) (A)->cursor_active_--
+#define memcached_server_response_reset(A) (A)->cursor_active_=0
 
-bool memcached_purge(memcached_server_write_instance_st ptr);
+#define memcached_instance_response_increment(A) (A)->cursor_active_++
+#define memcached_instance_response_decrement(A) (A)->cursor_active_--
+#define memcached_instance_response_reset(A) (A)->cursor_active_=0
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __cplusplus
+bool memcached_purge(org::libmemcached::Instance*);
+org::libmemcached::Instance* memcached_instance_by_position(const memcached_st *ptr, uint32_t server_key);
 #endif

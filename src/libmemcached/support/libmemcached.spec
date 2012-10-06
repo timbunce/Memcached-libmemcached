@@ -1,6 +1,6 @@
 Name:      libmemcached
 Summary:   memcached C library and command line tools
-Version: 1.0.8
+Version: 1.0.11
 Release:   1
 License:   BSD
 Group:     System Environment/Libraries
@@ -8,7 +8,39 @@ URL:       http://launchpad.net/libmemcached
 Source0:   http://download.tangent.org/libmemcached-%{version}.tar.gz
 
 # For test suite
+BuildRequires: bash
+BuildRequires: binutils
+BuildRequires: ccache
+BuildRequires: coreutils
+BuildRequires: cpio
+BuildRequires: cyrus-sasl-devel
+BuildRequires: diffutils
+BuildRequires: elfutils
+BuildRequires: file
+BuildRequires: findutils
+BuildRequires: gawk
+BuildRequires: gcc
+BuildRequires: gdb
+BuildRequires: glibc
+BuildRequires: glibc-common
+BuildRequires: glibc-devel
+BuildRequires: glibc-headers
+BuildRequires: grep
+BuildRequires: gzip
+BuildRequires: hostname
+BuildRequires: libevent-devel
+BuildRequires: libstdc++-devel
+BuildRequires: libuuid-devel
+BuildRequires: llvm-libs
+BuildRequires: make
 BuildRequires: memcached
+BuildRequires: mysql-libs
+BuildRequires: pkgconfig
+BuildRequires: protobuf-devel
+BuildRequires: python-sphinx
+BuildRequires: qt3
+BuildRequires: sed
+BuildRequires: tar
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -50,7 +82,7 @@ you will need to install %{name}-devel.
 
 %build
 %configure
-%{__make}
+%{__make} %{?_smp_mflags}
 
 
 %install
@@ -61,7 +93,7 @@ you will need to install %{name}-devel.
 %check
 # test suite cannot run in mock (same port use for memcache server on all arch)
 # 1 test seems to fail.. 
-# %{__make} test
+# %{__make} check
 
 
 %clean
@@ -87,11 +119,11 @@ you will need to install %{name}-devel.
 %exclude %{_libdir}/libmemcachedutil.a
 %exclude %{_libdir}/libmemcachedprotocol.a
 %{_libdir}/libhashkit.so.2.0.0
-%{_libdir}/libmemcached.so.10.0.0
+%{_libdir}/libmemcached.so.11.0.0
 %{_libdir}/libmemcachedutil.so.2.0.0
 %{_libdir}/libmemcachedprotocol.so.0.0.0
 %{_libdir}/libhashkit.so.2
-%{_libdir}/libmemcached.so.10
+%{_libdir}/libmemcached.so.11
 %{_libdir}/libmemcachedprotocol.so.0
 %{_libdir}/libmemcachedutil.so.2
 %{_mandir}/man1/memaslap.1.gz

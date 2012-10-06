@@ -36,12 +36,6 @@
 /* Another magical number */
 #undef EAI_SYSTEM
 
-/* machine is bigendian */
-#undef ENDIAN_BIG
-
-/* machine is littleendian */
-#undef ENDIAN_LITTLE
-
 /* Name of the gearmand binary used in make test */
 #undef GEARMAND_BINARY
 
@@ -73,7 +67,7 @@
 /* Define to 1 if you have the <atomic.h> header file. */
 #undef HAVE_ATOMIC_H
 
-/* Have a working clock_gettime function */
+/* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
 
 /* Define to 1 if you have the <cxxabi.h> header file. */
@@ -170,6 +164,9 @@
 /* Define to 1 if you have the `mtmalloc' library (-lmtmalloc). */
 #undef HAVE_LIBMTMALLOC
 
+/* Define to 1 if MySQL libraries are available */
+#undef HAVE_LIBMYSQL_BUILD
+
 /* Support for Postgres */
 #undef HAVE_LIBPQ
 
@@ -191,9 +188,6 @@
 
 /* Define to 1 if you have the `umem' library (-lumem). */
 #undef HAVE_LIBUMEM
-
-/* Have libuuid */
-#undef HAVE_LIBUUID
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -241,6 +235,12 @@
 /* Enables murmur hashing support */
 #undef HAVE_MURMUR_HASH
 
+/* Define to 1 if MySQL libraries are available */
+#undef HAVE_MYSQL
+
+/* Define to 1 if MySQLD binary is available */
+#undef HAVE_MYSQLD_BUILD
+
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
@@ -286,6 +286,9 @@
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
+
+/* Check for SOCK_CLOEXEC. */
+#undef HAVE_SOCK_CLOEXEC
 
 /* Define to 1 if you have the `sqrt' function. */
 #undef HAVE_SQRT
@@ -362,6 +365,12 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define if uuid_generate_time_safe is present in uuid/uuid.h. */
+#undef HAVE_UUID_GENERATE_TIME_SAFE
+
+/* Have uuid/uuid.h */
+#undef HAVE_UUID_UUID_H
+
 /* Define to 1 if you have the `vfork' function. */
 #undef HAVE_VFORK
 
@@ -405,6 +414,9 @@
 
 /* Name of the memcached_sasl binary used in make test */
 #undef MEMCACHED_SASL_BINARY
+
+/* Name of the mysqld binary used in make test */
+#undef MYSQLD_BINARY
 
 /* Define to 1 if assertions should be disabled. */
 #undef NDEBUG
@@ -693,5 +705,11 @@ typedef unsigned long int ulong;
 #define RPACKAGE "memcached" 
  
 #define RVERSION "1.4.13"
+
+#ifdef WORDS_BIGENDIAN 
+# define ENDIAN_BIG 1
+#else
+# define ENDIAN_LITTLE 1
+#endif
  
 

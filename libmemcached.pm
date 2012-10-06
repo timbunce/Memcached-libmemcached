@@ -9,11 +9,11 @@ Memcached::libmemcached - Thin fast full interface to the libmemcached client AP
 
 =head1 VERSION
 
-Version 1.000801 (with libmemcached-1.0.8 embedded)
+Version 1.001100 (with libmemcached-1.0.11 embedded)
 
 =cut
 
-our $VERSION = '1.000801'; # also alter in pod above
+our $VERSION = '1.001100'; # also alter in pod above
 
 use Carp;
 use base qw(Exporter);
@@ -791,7 +791,7 @@ Patches and volunteers always welcome.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2008 Tim Bunce, All Rights Reserved.
+Copyright 2008-2012 Tim Bunce, All Rights Reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

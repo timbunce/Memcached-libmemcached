@@ -45,6 +45,7 @@ static inline bool _memcached_init(memcached_st *self)
   self->state.is_purging= false;
   self->state.is_processing_input= false;
   self->state.is_time_for_rebuild= false;
+  self->state.is_parsing= false;
 
   self->flags.auto_eject_hosts= false;
   self->flags.binary_protocol= false;
@@ -59,6 +60,8 @@ static inline bool _memcached_init(memcached_st *self)
   self->flags.use_udp= false;
   self->flags.verify_key= false;
   self->flags.tcp_keepalive= false;
+  self->flags.is_aes= false;
+  self->flags.is_fetching_version= false;
 
   self->virtual_bucket= NULL;
 
@@ -75,7 +78,7 @@ static inline bool _memcached_init(memcached_st *self)
   self->ketama.continuum_count= 0;
   self->ketama.continuum_points_counter= 0;
   self->ketama.next_distribution_rebuild= 0;
-  self->ketama.weighted= false;
+  self->ketama.weighted_= false;
 
   self->number_of_hosts= 0;
   self->servers= NULL;
@@ -128,12 +131,12 @@ static void __memcached_free(memcached_st *ptr, bool release_st)
 {
   /* If we have anything open, lets close it now */
   send_quit(ptr);
-  memcached_server_list_free(memcached_server_list(ptr));
+  memcached_instance_list_free(memcached_instance_list(ptr), memcached_instance_list_count(ptr));
   memcached_result_free(&ptr->result);
 
   memcached_virtual_bucket_free(ptr);
 
-  memcached_server_free(ptr->last_disconnected_server);
+  memcached_instance_free((org::libmemcached::Instance*)ptr->last_disconnected_server);
 
   if (ptr->on_cleanup)
   {
@@ -275,11 +278,11 @@ void memcached_servers_reset(memcached_st *self)
 {
   if (self)
   {
-    memcached_server_list_free(memcached_server_list(self));
+    memcached_instance_list_free(memcached_instance_list(self), self->number_of_hosts);
 
-    memcached_server_list_set(self, NULL);
+    memcached_instance_set(self, NULL, 0);
     self->number_of_hosts= 0;
-    memcached_server_free(self->last_disconnected_server);
+    memcached_instance_free((org::libmemcached::Instance*)self->last_disconnected_server);
     self->last_disconnected_server= NULL;
   }
 }
@@ -288,7 +291,7 @@ void memcached_reset_last_disconnected_server(memcached_st *self)
 {
   if (self)
   {
-    memcached_server_free(self->last_disconnected_server);
+    memcached_instance_free((org::libmemcached::Instance*)self->last_disconnected_server);
     self->last_disconnected_server= NULL;
   }
 }
@@ -421,10 +424,10 @@ void *memcached_set_user_data(memcached_st *ptr, void *data)
 
 memcached_return_t memcached_push(memcached_st *destination, const memcached_st *source)
 {
-  return memcached_server_push(destination, source->servers);
+  return memcached_instance_push(destination, (org::libmemcached::Instance*)source->servers, source->number_of_hosts);
 }
 
-memcached_server_write_instance_st memcached_server_instance_fetch(memcached_st *ptr, uint32_t server_key)
+org::libmemcached::Instance* memcached_instance_fetch(memcached_st *ptr, uint32_t server_key)
 {
   if (ptr == NULL)
   {
@@ -444,6 +447,16 @@ memcached_server_instance_st memcached_server_instance_by_position(const memcach
   return &ptr->servers[server_key];
 }
 
+org::libmemcached::Instance* memcached_instance_by_position(const memcached_st *ptr, uint32_t server_key)
+{
+  if (ptr == NULL)
+  {
+    return NULL;
+  }
+
+  return &ptr->servers[server_key];
+}
+
 uint64_t memcached_query_id(const memcached_st *self)
 {
   if (self == NULL)
@@ -453,3 +466,14 @@ uint64_t memcached_query_id(const memcached_st *self)
 
   return self->query_id;
 }
+
+org::libmemcached::Instance* memcached_instance_list(const memcached_st *self)
+{
+  if (self)
+  {
+    return (org::libmemcached::Instance*)self->servers;
+  }
+
+  return NULL;
+}
+

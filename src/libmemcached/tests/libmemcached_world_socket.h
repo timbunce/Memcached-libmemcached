@@ -45,7 +45,7 @@
 
 static void *world_create(libtest::server_startup_st& servers, test_return_t& error)
 {
-  if (HAVE_MEMCACHED_BINARY == 0)
+  if (libtest::has_memcached() == false)
   {
     error= TEST_SKIPPED;
     return NULL;
@@ -56,7 +56,11 @@ static void *world_create(libtest::server_startup_st& servers, test_return_t& er
     const char *argv[1]= { "memcached" };
     if (servers.start_socket_server("memcached", libtest::get_free_port(), 1, argv) == false)
     {
+#if 0
       fatal_message("Could not launch memcached");
+#endif
+      error= TEST_SKIPPED;
+      return NULL;
     }
   }
 

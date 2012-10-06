@@ -46,9 +46,20 @@
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wmissing-declarations"
+#pragma GCC diagnostic ignored "-Wunused-result"
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
 #endif
 
-#define YY_NO_INPUT
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wshorten-64-to-32"
+#endif
+
+#ifndef __INTEL_COMPILER
+#ifndef __clang__
+#pragma GCC diagnostic ignored "-Wlogical-op"
+#endif
+#endif
 
 #define YY_EXTRA_TYPE Context*
 
@@ -76,6 +87,10 @@
   } \
 }
 
+#define YY_FATAL_ERROR(msg) \
+{ \
+}
+
 
 #define YY_INPUT(buffer, result, max_size) get_lex_chars(buffer, result, max_size, PARAM)
 
@@ -83,14 +98,16 @@
 
 %option 8bit
 %option bison-bridge
+%option never-interactive
 %option case-insensitive
-%option debug
+%option noinput
 %option nounput
 %option noyywrap
 %option outfile="libmemcached/csl/scanner.cc" header-file="libmemcached/csl/scanner.h"
 %option perf-report
 %option prefix="config_"
 %option reentrant
+%option warn
 
 %%
 
@@ -148,6 +165,8 @@
 
 "--NAMESPACE="	       		        { yyextra->begin= yytext; return yyextra->previous_token= NAMESPACE; }
 
+"--FETCH-VERSION"	       		        { yyextra->begin= yytext; return yyextra->previous_token= FETCH_VERSION; }
+
 INCLUDE           { yyextra->begin= yytext; return yyextra->previous_token= INCLUDE; }
 RESET           { yyextra->begin= yytext; return yyextra->previous_token= RESET; }
 DEBUG           { yyextra->begin= yytext; return yyextra->previous_token= PARSER_DEBUG; }
@@ -179,36 +198,26 @@ MURMUR			{ return MURMUR; }
 JENKINS			{ return JENKINS; }
 
 (([[:digit:]]{1,3}"."){3}([[:digit:]]{1,3})) {
-      yylval->server.port= MEMCACHED_DEFAULT_PORT;
-      yylval->server.weight= 1;
-      yylval->server.c_str= yyextra->set_hostname(yytext, yyleng);
-      if (yylval->server.c_str)
-        yylval->server.size= yyleng;
+      yyextra->hostname(yytext, yyleng, yylval->server);
       return IPADDRESS;
     }
 
 [[:alnum:]]["."[:alnum:]_-]+[[:alnum:]] {
       if (yyextra->is_server())
       {
-        yylval->server.port= MEMCACHED_DEFAULT_PORT;
-        yylval->server.weight= 1;
-        yylval->server.c_str= yyextra->set_hostname(yytext, yyleng);
-        if (yylval->server.c_str)
-          yylval->server.size= yyleng;
+        yyextra->hostname(yytext, yyleng, yylval->server);
 
         return HOSTNAME;
       }
 
-      yylval->string.c_str = yytext;
-      yylval->string.size = yyleng;
+      yyextra->string_buffer(yytext, yyleng, yylval->string);
 
       return STRING;
     }
 
 L?\"(\\.|[^\\"])*\" {
       yyget_text(yyscanner)[yyleng -1]= 0;
-      yylval->string.c_str= yytext +1;
-      yylval->string.size= yyleng -2;
+      yyextra->string_buffer(yytext +1, yyleng -2, yylval->string);
       return QUOTED_STRING;
     }
 
@@ -227,6 +236,7 @@ void Context::init_scanner()
 
 void Context::destroy_scanner()
 {
+  (void)yy_fatal_error; // Removes warning about unused yy_fatal_error()
   yylex_destroy(scanner);
 }
 

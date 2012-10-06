@@ -63,6 +63,8 @@ using namespace libtest;
 
 #include <libtest/server.h>
 
+#include "libmemcached/instance.h"
+
 #ifndef __INTEL_COMPILER
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
@@ -564,7 +566,7 @@ collection_st collection[] ={
 
 #include "tests/libmemcached_world.h"
 
-void get_world(Framework *world)
+void get_world(libtest::Framework* world)
 {
   world->collections(collection);
 

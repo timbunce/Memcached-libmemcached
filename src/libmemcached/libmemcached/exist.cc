@@ -36,7 +36,7 @@
 
 #include <libmemcached/common.h>
 
-static memcached_return_t ascii_exist(memcached_st *memc, memcached_server_write_instance_st instance, const char *key, size_t key_length)
+static memcached_return_t ascii_exist(memcached_st *memc, org::libmemcached::Instance* instance, const char *key, size_t key_length)
 {
   libmemcached_io_vector_st vector[]=
   {
@@ -74,12 +74,13 @@ static memcached_return_t ascii_exist(memcached_st *memc, memcached_server_write
   return rc;
 }
 
-static memcached_return_t binary_exist(memcached_st *memc, memcached_server_write_instance_st instance, const char *key, size_t key_length)
+static memcached_return_t binary_exist(memcached_st *memc, org::libmemcached::Instance* instance, const char *key, size_t key_length)
 {
   protocol_binary_request_set request= {};
   size_t send_length= sizeof(request.bytes);
 
-  request.message.header.request.magic= PROTOCOL_BINARY_REQ;
+  initialize_binary_request(instance, request.message.header);
+
   request.message.header.request.opcode= PROTOCOL_BINARY_CMD_ADD;
   request.message.header.request.keylen= htons((uint16_t)(key_length + memcached_array_size(memc->_namespace)));
   request.message.header.request.datatype= PROTOCOL_BINARY_RAW_BYTES;
@@ -142,7 +143,7 @@ memcached_return_t memcached_exist_by_key(memcached_st *memc,
   }
 
   uint32_t server_key= memcached_generate_hash_with_redistribution(memc, group_key, group_key_length);
-  memcached_server_write_instance_st instance= memcached_server_instance_fetch(memc, server_key);
+  org::libmemcached::Instance* instance= memcached_instance_fetch(memc, server_key);
 
   if (memcached_is_binary(memc))
   {
