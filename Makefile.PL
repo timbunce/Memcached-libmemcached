@@ -87,6 +87,11 @@ WriteMakefile(
     PREREQ_PM           => {
         'Test::More' => 0,
     },
+    META_MERGE        => {
+        resources => {
+            repository => 'https://github.com/timbunce/Memcached-libmemcached',
+        },
+    },
     dynamic_lib         => {
         OTHERLDFLAGS => ($opt_pg ? "-pg " : "")
                       . ($opt_g  ? "-g "  : "") 
