@@ -1,4 +1,6 @@
 package Memcached::libmemcached::memcached_result_st;
+use strict;
+use warnings;
 
 =head1 NAME
 
