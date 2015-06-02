@@ -1,4 +1,6 @@
 package Memcached::libmemcached::memcached_create;
+use strict;
+use warnings;
 
 =head1 NAME
 

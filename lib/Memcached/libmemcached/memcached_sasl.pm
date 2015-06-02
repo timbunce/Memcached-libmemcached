@@ -1,4 +1,6 @@
 package Memcached::libmemcached::memcached_sasl;
+use strict;
+use warnings;
 
 =head1 NAME
 

@@ -1,4 +1,6 @@
 package Memcached::libmemcached::memcached_flush;
+use strict;
+use warnings;
 
 =head1 NAME
 

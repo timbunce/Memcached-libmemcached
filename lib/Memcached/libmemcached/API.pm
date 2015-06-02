@@ -1,4 +1,6 @@
 package Memcached::libmemcached::API;
+use strict;
+use warnings;
 
 =head1 NAME
 
