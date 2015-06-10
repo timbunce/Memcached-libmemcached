@@ -205,7 +205,7 @@ give_advice "$1" | sed -e '1s/^/WARNING: /' \
 
 # Propagate the correct exit status (expected to be 127 for a program
 # not found, 63 for a program that failed due to version mismatch).
-exit $st
+exit 0
 
 # Local variables:
 # eval: (add-hook 'write-file-hooks 'time-stamp)
