@@ -240,13 +240,13 @@ Specify time, in seconds, to mark a connection as idle. This is only available a
 =item MEMCACHED_BEHAVIOR_SOCKET_SEND_SIZE
 
 Find the current size of SO_SNDBUF. A value of 0 means either an error
-occured or no hosts were available. It is safe to assume system default
+occurred or no hosts were available. It is safe to assume system default
 if this occurs.
 
 =item MEMCACHED_BEHAVIOR_SOCKET_RECV_SIZE
 
 Find the current size of SO_RCVBUF. A value of 0 means either an error
-occured or no hosts were available. It is safe to assume system default
+occurred or no hosts were available. It is safe to assume system default
 if this occurs.
 
 =item MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT
