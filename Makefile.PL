@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 
+use lib ".";
+
 use ExtUtils::MakeMaker;
 use Config;
 
