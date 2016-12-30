@@ -41,12 +41,12 @@ of the callbacks
 
 =item MEMCACHED_CALLBACK_CLEANUP_FUNCTION
 
-When memcached_delete() is called this function will be excuted. At the
+When memcached_delete() is called this function will be executed. At the
 point of its execution all connections have been closed.
 
 =item MEMCACHED_CALLBACK_CLONE_FUNCTION
 
-When memcached_delete() is called this function will be excuted. At the
+When memcached_delete() is called this function will be executed. At the
 point of its execution all connections have been closed.
 
 =item MEMCACHED_CALLBACK_PREFIX_KEY
@@ -83,7 +83,7 @@ You are responsible for populating the result object provided. This result objec
 returned to the calling process. You must clone the memcached_st in order to
 make use of it. The value will be stored only if you return
 MEMCACHED_SUCCESS or MEMCACHED_BUFFERED. Returning MEMCACHED_BUFFERED will
-cause the object to be buffered and not sent immediatly (if this is the default behavior based on your connection setup this will happen automatically).
+cause the object to be buffered and not sent immediately (if this is the default behavior based on your connection setup this will happen automatically).
 
 The prototype for this is:
 memcached_return_t (*memcached_trigger_key)(memcached_st *ptr, char *key, size_t key_length, memcached_result_st *result);

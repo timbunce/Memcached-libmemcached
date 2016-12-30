@@ -26,7 +26,7 @@ C Client Library for memcached (libmemcached, -lmemcached)
 =head1 DESCRIPTION
 
 memcached_dump() is used to get a list of keys found  memcached(1) servers.
-Because memcached(1) does not guarentee to dump all keys you can not assume
+Because memcached(1) does not guarantee to dump all keys you can not assume
 you have fetched all keys from the server. The function takes an array
 of callbacks that it will use to execute on keys as they are found.
 
